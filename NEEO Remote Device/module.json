@@ -1,0 +1,11 @@
+{
+    "id": "{67252707-E627-4DFC-07D3-438452F20B23}",
+    "name": "NEEORemoteDevice",
+    "type": 3,
+    "vendor": "NEEO",
+    "aliases": ["NEEO Remote Device"],
+    "parentRequirements": ["{D9983673-4093-BE00-3D73-84D6124CB016}"],
+    "childRequirements": [],
+    "implemented": ["{DAAA4574-9321-3497-D8BC-811D94206FDB}"],
+    "prefix": "NEEORD"
+}

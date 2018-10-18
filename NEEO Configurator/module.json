@@ -1,0 +1,17 @@
+{
+  "id": "{A32F5A04-ABF9-856F-7729-883DDFFF8E2A}",
+  "name": "NEEOConfigurator",
+  "type": 4,
+  "vendor": "NEEO",
+  "aliases": [
+    "NEEO Konfigurator"
+  ],
+  "parentRequirements": [
+    "{99C86935-D78B-9589-41FA-4CFE517C9273}"
+  ],
+  "childRequirements": [],
+  "implemented": [
+    "{DAAA4574-9321-3497-D8BC-811D94206FDB}"
+  ],
+  "prefix": "NEEOConfig"
+}

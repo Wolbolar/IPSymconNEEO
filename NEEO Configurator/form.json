@@ -1,0 +1,49 @@
+{
+  "actions": [
+    {
+      "type": "Configurator",
+      "name": "NEEOConfiguration",
+      "rowCount": 20,
+      "add": false,
+      "delete": true,
+      "sort": {
+        "column": "room",
+        "direction": "ascending"
+      },
+      "columns": [
+        {
+          "label": "ID",
+          "name": "id",
+          "width": "200px",
+          "visible": false
+        },
+        {
+          "label": "Type",
+          "name": "type",
+          "width": "200px"
+        },
+        {
+          "label": "Room",
+          "name": "room",
+          "width": "200px"
+        },
+        {
+          "label": "Device",
+          "name": "device",
+          "width": "200px"
+        },
+        {
+          "label": "Manufacturer",
+          "name": "manufacturer",
+          "width": "250px"
+        },
+        {
+          "label": "Name",
+          "name": "name",
+          "width": "auto"
+        }
+      ],
+      "values": []
+    }
+  ]
+}

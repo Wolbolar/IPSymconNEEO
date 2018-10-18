@@ -1,0 +1,11 @@
+{
+    "id": "{F2EB7DBC-A770-43D1-A64A-089E8B0A7C37}",
+    "name": "NEEOWebUIDevice",
+    "type": 3,
+    "vendor": "NEEO",
+    "aliases": ["NEEO WEB UI Device"],
+    "parentRequirements": ["{5F9F321B-78B5-42F5-9A88-C27B8C3132FE}"],
+    "childRequirements": [],
+    "implemented": ["{DAAA4574-9321-3497-D8BC-811D94206FDB}"],
+    "prefix": "NEEOUI"
+}

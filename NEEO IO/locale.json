@@ -1,0 +1,41 @@
+{
+  "translations": {
+    "de": {
+      "Enter IP Adress of NEEO (can be found in the NEEO app under about):": "Bitte die IP Adresse vom NEEO Brain eingeben (in der NEEO App unter Settings->about zu finden)",
+      "Host": "IP Adresse",
+      "setup forward actions in the NEEO APP": "forward actions in der NEEO App anlegen",
+      "Open NEEO APP, goto Settings -> NEEO Brain-> Forward actions": "NEEO App öffnen, Settings -> NEEO Brain-> Forward actions",
+      "Set webbhook username:": "Webhook Nutzernamen festlegen:",
+      "webhook username": "Webhook Nutzername",
+      "Set webhook password:": "Webhook Passwort festlegen:",
+      "webhook password": "Webhook Passwort",
+      "Enter following in the NEEO app:": "Folgendes in der NEEO App eingeben:",
+      "If you like to foward data from NEEO to a script please add script below:": "Wenn die Daten von NEEO zusätzlich an ein Skript weitergeleitet werden sollen das Skript biite unten ergänzen:",
+      "Forward script": "Weiterleitungsskript",
+      "{IP Adress} is the IP Adress from IP-Symcon": "{IP Adress} ist die IP Adresse von IP-Symcon",
+      "{webhook username} is the webhook username set above in IP-Symcon": "{webhook username} ist der Webhook Benutzername, der in IP-Symcon gesetzt wurde (s.o.)",
+      "{webhook password} is the webhook password set above in IP-Symcon": "{webhook password} ist das Webhook Password, das in IP-Symcon gesetzt wurde (s.o.)",
+      "NEEO app Forward Brain Actions -> Target host: {webhook username}:{webhook password}@{IP Adress}": "NEEO app Forward Brain Actions -> Target host: {webhook username}:{webhook password}@{IP Adress}",
+      "NEEO app Forward Brain Actions -> Target port: 3777": "NEEO app Forward Brain Actions -> Target port: 3777",
+      "NEEO app Forward Brain Actions -> Path: /hook/neeo": "NEEO app Forward Brain Actions -> Path: /hook/neeo",
+      "category for NEEO devices": "Kategorie für NEEO Geräte",
+      "NEEO devices": "NEEO Geräte",
+      "create scripts for remote control (alternative or addition for remote control via webfront):": "Skripte für Remote Steuerung von NEEO anlegen (Alternative oder Ergänzung zu Variablen im Webfront)",
+      "Create variables for webfront (Please note: High numbers of variables)": "Variablen für Webfront anlegen (Bitte beachten es wird eine hohe Anzahl an Varibalen angelegt)",
+      "NEEO variables": "NEEO Variablen",
+      "NEEO script": "NEEO Skripte",
+      "Get NEEO System Information:": "NEEO System Information abholen:",
+      "Get Info": "Info holen",
+      "Create NEEO devices:": "NEEO Geräte anlegen",
+      "Setup NEEO devices": "Setup NEEO Geräte",
+      "Creating instance.": "Instanz anlegen.",
+      "NEEO IO created.": "NEEO IO angelegt.",
+      "interface closed.": "Schnittstelle geschlossen.",
+      "Please follow the instructions.": "Bitte der Anleitung folgen.",
+      "address must not empty.": "Adresse darf nicht leer sein.",
+      "No valid address.": "Keine gültige Adresse.",
+      "field must not be empty.": "Das Feld darf nicht leer sein.",
+      "select category for import.": "Kategorie zum Import auswählen."
+    }
+  }
+}

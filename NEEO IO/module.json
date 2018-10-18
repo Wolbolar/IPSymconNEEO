@@ -1,0 +1,11 @@
+{
+    "id": "{A938EE1A-519B-4BAB-AEB1-EFC1B2B15A91}",
+    "name": "NEEOIO",
+    "type": 1,
+    "vendor": "NEEO",
+    "aliases": ["NEEO I/O"],
+    "parentRequirements": [],
+    "childRequirements": ["{DAAA4574-9321-3497-D8BC-811D94206FDB}"],
+    "implemented": ["{D9983673-4093-BE00-3D73-84D6124CB016}", "{99C86935-D78B-9589-41FA-4CFE517C9273}", "{5F9F321B-78B5-42F5-9A88-C27B8C3132FE}"],
+    "prefix": "NEEO"
+}

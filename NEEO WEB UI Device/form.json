@@ -1,0 +1,68 @@
+{
+  "elements": [
+    {
+      "type": "Label",
+      "label": "WEB UI NEEO"
+    },
+    {
+      "type": "Label",
+      "label": "IP adress NEEO Brian"
+    },
+    {
+      "name": "Host",
+      "type": "ValidationTextBox",
+      "caption": "IP NEEO Brian"
+    },
+    {
+      "type": "Label",
+      "label": "Frame height and width (px)"
+    },
+    { "type": "NumberSpinner",
+      "name": "height",
+      "caption": "height (px)"
+    },
+    { "type": "NumberSpinner",
+      "name": "width",
+      "caption": "width (px)"
+    }
+  ],
+  "actions": [
+  ],
+  "status": [
+    {
+      "code": 101,
+      "icon": "inactive",
+      "caption": "Creating instance."
+    },
+    {
+      "code": 102,
+      "icon": "active",
+      "caption": "NEEO Web UI accessible."
+    },
+    {
+      "code": 104,
+      "icon": "inactive",
+      "caption": "interface closed."
+    },
+    {
+      "code": 202,
+      "icon": "error",
+      "caption": "adress must not empty."
+    },
+    {
+      "code": 203,
+      "icon": "error",
+      "caption": "No valid IP adress or host."
+    },
+    {
+      "code": 204,
+      "icon": "error",
+      "caption": "connection to Doorbird lost."
+    },
+    {
+      "code": 205,
+      "icon": "error",
+      "caption": "field must not be empty."
+    }
+  ]
+}

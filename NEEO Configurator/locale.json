@@ -1,0 +1,39 @@
+{
+  "translations": {
+    "de": {
+      "Type": "Typ",
+      "Room": "Raum",
+      "room": "Raum",
+      "LIGHT": "Licht",
+      "light": "Licht",
+      "SONOS": "Sonos",
+      "sonos": "Sonos",
+      "PROJECTOR": "Projektor",
+      "projector": "Projektor",
+      "AVRECEIVER": "AV Receiver",
+      "avreceiver": "AV Receiver",
+      "GAMECONSOLE": "Spielkonsole",
+      "gameconsole": "Spielekonsole",
+      "MEDIAPLAYER": "Media Player",
+      "mediaplayer": "Media Player",
+      "ACCESSOIRE": "Zubehör",
+      "accessoire": "Zubehör",
+      "DVB": "DVB",
+      "dvb": "DVB",
+      "hue": "Hue",
+      "Device": "Gerät",
+      "Manufacturer": "Hersteller",
+      "Name": "Name",
+      "hdmiswitch": "HDMI Switch",
+      "tv": "TV",
+      "Basement": "Erdgeschoss",
+      "Livingroom": "Wohnzimmer",
+      "Bonus Room": "Zusatzraum",
+      "Family Room": "Familien Raum",
+      "Great Room": "Großes Zimmer",
+      "Small Room": "Kleines Zimmer",
+      "devices": "Geräte",
+      "NEEO Devices": "NEEO Geräte"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "translations": {
+    "de": {
+      "IP adress NEEO Brian": "IP Adresse NEEO Brian",
+      "IP NEEO Brian": "IP NEEO Brian",
+      "height (px)": "Höhe (px)",
+      "width (px)": "Weite (px)",
+      "Frame height and width (px)": "Rahmen Höhe und Breite (px)",
+      "Creating instance.": "Instanz anlegen.",
+      "NEEO Web UI accessible.": "NEEO Web UI angelegt.",
+      "interface closed.": "Schnittstelle geschlossen.",
+      "Please follow the instructions.": "Bitte der Anleitung folgen.",
+      "address must not empty.": "Adresse darf nicht leer sein.",
+      "No valid address.": "Keine gültige Adresse.",
+      "field must not be empty.": "Das Feld darf nicht leer sein."
+    }
+  }
+}
