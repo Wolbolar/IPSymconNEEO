@@ -259,12 +259,12 @@ class NEEOConfigurator extends IPSModule
 	 * @param string $Method
 	 * @return string | array
 	 */
-	private function SendData(string $Method, string $Uri)
+	private function SendData(string $Method, string $command)
 	{
 		$Data['DataID'] = '{99C86935-D78B-9589-41FA-4CFE517C9273}';
-		$Data['Buffer'] = ['Method' => $Method, 'Uri' => $Uri, 'Content' => "" ];
+		$Data['Buffer'] = ['Method' => $Method, 'Command' => $command, 'Content' => "" ];
 		$this->SendDebug('Method:', $Method, 0);
-		$this->SendDebug('Uri:', $Uri, 0);
+		$this->SendDebug('Command:', $command, 0);
 		$this->SendDebug('Send:', json_encode($Data), 0);
 		$this->SendDebug('Form:', json_last_error_msg(), 0);
 		$ResultString = @$this->SendDataToParent(json_encode($Data));
