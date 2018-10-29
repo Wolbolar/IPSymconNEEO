@@ -28,6 +28,7 @@ class NEEORemoteDevice extends IPSModule
 
 		//These lines are parsed on Symcon Startup or Instance creation
 		//You cannot use variables here. Just static values.
+		$this->RegisterPropertyString("neeo_hostname", "");
 		$this->RegisterPropertyString("type", "");
 		$this->RegisterPropertyString("device", "");
 		$this->RegisterPropertyString("room_name", "");
@@ -78,20 +79,21 @@ class NEEORemoteDevice extends IPSModule
 
 	private function ValidateConfiguration()
 	{
+		$NEEOScript = $this->ReadPropertyBoolean("NEEOScript");
 		$NEEOForwardScript = $this->ReadPropertyBoolean("NEEOForwardScript");
 		$NEEOForwardScriptID = $this->ReadPropertyInteger("NEEOForwardScriptID");
 		$type = $this->ReadPropertyString("type");
-		if($NEEOForwardScript == true && $NEEOForwardScriptID == 0)
-		{
+		if ($NEEOForwardScript == true && $NEEOForwardScriptID == 0) {
 			$this->SetStatus(205);
 		}
-		if($type == "")
-		{
+		if ($type == "") {
 			$this->SetStatus(206);
 		}
-		if($type != "")
-		{
+		if ($type != "") {
 			$this->SetupVariables();
+		}
+		if ($NEEOScript) {
+			$this->SetNEEOInstanceScripts();
 		}
 		$this->SetStatus(102);
 	}
@@ -121,13 +123,116 @@ class NEEORemoteDevice extends IPSModule
 		$this->ApplyChanges();
 	}
 
+	public function SetNEEOInstanceScripts()
+	{
+		$parent_room = IPS_GetParent($this->InstanceID);
+		$parent_neeo_brain = IPS_GetParent($parent_room);
+		$neeo_hostname = IPS_GetName($parent_neeo_brain);
+		$parent_neeo_category = IPS_GetParent($parent_neeo_brain);
+		$top_level_catid = $this->CreateNEEOScriptCategory($neeo_hostname, $parent_neeo_category);
+		$room_catid = $this->CreateNEEOScriptCategoryRoom($neeo_hostname, $top_level_catid);
+		$catid = $this->CreateNEEOScriptCategoryDevice($neeo_hostname, $room_catid);
+		$this->CreateDeviceSkripts($catid);
+	}
+
+	private function CreateNEEOScriptCategory($neeo_hostname, $parent_neeo_category)
+	{
+		//Prüfen ob Kategorie schon existiert
+		$NEEO_Script_CategoryID = @IPS_GetObjectIDByIdent("top_level_NEEOScript_" . $this->CreateIdent($neeo_hostname), $parent_neeo_category);
+		if ($NEEO_Script_CategoryID === false) {
+			$NEEO_Script_CategoryID = IPS_CreateCategory();
+			IPS_SetName($NEEO_Script_CategoryID, $neeo_hostname . " " . $this->Translate("Scripts"));
+			IPS_SetIdent($NEEO_Script_CategoryID, "top_level_NEEOScript_" . $this->CreateIdent($neeo_hostname)); // Ident muss eindeutig sein
+			IPS_SetInfo($NEEO_Script_CategoryID, $neeo_hostname);
+			IPS_SetParent($NEEO_Script_CategoryID, $parent_neeo_category);
+		}
+		$this->SendDebug("NEEO Script Category Brain", $NEEO_Script_CategoryID, 0);
+		return $NEEO_Script_CategoryID;
+	}
+
+	private function CreateNEEOScriptCategoryRoom($neeo_hostname, $top_level_catid)
+	{
+		$roomname = $this->ReadPropertyString("room_name");
+		//Prüfen ob Kategorie schon existiert
+		$NEEO_Script_CategoryID = @IPS_GetObjectIDByIdent("room_NEEOScript_" . $this->CreateIdent($neeo_hostname) . "_" . $this->CreateIdent($roomname), $top_level_catid);
+		if ($NEEO_Script_CategoryID === false) {
+			$NEEO_Script_CategoryID = IPS_CreateCategory();
+			IPS_SetName($NEEO_Script_CategoryID, $roomname);
+			IPS_SetIdent($NEEO_Script_CategoryID, "room_NEEOScript_" . $this->CreateIdent($neeo_hostname) . "_" . $this->CreateIdent($roomname)); // Ident muss eindeutig sein
+			IPS_SetInfo($NEEO_Script_CategoryID, $roomname);
+			IPS_SetParent($NEEO_Script_CategoryID, $top_level_catid);
+		}
+		$this->SendDebug("NEEO Script Category Room", $NEEO_Script_CategoryID, 0);
+		return $NEEO_Script_CategoryID;
+	}
+
+	private function CreateNEEOScriptCategoryDevice($neeo_hostname, $room_catid)
+	{
+		$roomname = $this->ReadPropertyString("room_name");
+		$devicename = $this->ReadPropertyString("device_name");
+
+		//Prüfen ob Kategorie schon existiert
+		$NEEO_Script_CategoryID = @IPS_GetObjectIDByIdent("device_NEEOSkript_" . $this->CreateIdent($neeo_hostname) . "_" . $this->CreateIdent($roomname) . "_" . $this->CreateIdent($devicename), $room_catid);
+		if ($NEEO_Script_CategoryID === false) {
+			$NEEO_Script_CategoryID = IPS_CreateCategory();
+			IPS_SetName($NEEO_Script_CategoryID, $devicename);
+			IPS_SetIdent($NEEO_Script_CategoryID, "device_NEEOSkript_" . $this->CreateIdent($neeo_hostname) . "_" . $this->CreateIdent($roomname) . "_" . $this->CreateIdent($devicename)); // Ident muss eindeutig sein
+			IPS_SetInfo($NEEO_Script_CategoryID, $roomname);
+			IPS_SetParent($NEEO_Script_CategoryID, $room_catid);
+		}
+		$this->SendDebug("NEEO Skript Category Device", $NEEO_Script_CategoryID, 0);
+		return $NEEO_Script_CategoryID;
+	}
+
+	private function CreateDeviceSkripts($catid)
+	{
+		$this->CreateMacroSkripts($catid);
+	}
+
+	private function CreateMacroSkripts($catid)
+	{
+		$devicename = $this->ReadPropertyString("device_name");
+		$devicekey = $this->ReadPropertyString("deviceKey");
+		$macros = $this->GetMacros();
+		foreach ($macros as $command_type => $macro) {
+			$macro_key = $macro->key;
+			//Prüfen ob Script schon existiert
+			$Scriptname = $devicename . "_" . $command_type;
+			$scriptident = $this->CreateIdent("NEEO_Script_Device_" . $devicekey . "_Macro_" . $macro_key);
+			$ScriptID = @IPS_GetObjectIDByIdent($scriptident, $catid);
+			if ($ScriptID === false) {
+				$ScriptID = IPS_CreateScript(0);
+				IPS_SetName($ScriptID, $Scriptname);
+				IPS_SetParent($ScriptID, $catid);
+				IPS_SetIdent($ScriptID, $scriptident);
+				$content = "<?" . PHP_EOL .
+					"NEEO_Trigger_Makro(" . $this->InstanceID . ",\"" . $macro_key . "\");" . PHP_EOL .
+					"?>";
+
+				IPS_SetScriptContent($ScriptID, $content);
+			}
+		}
+	}
+
+	private function GetMacroKey($macro_command)
+	{
+		$macros = $this->GetMacros();
+		foreach ($macros as $command_type => $macro) {
+			$macro_key = $macro->key;
+			if($macro_command == $command_type)
+			{
+				return $macro_key;
+			}
+		}
+		return false;
+	}
+
 	public function SetupVariables()
 	{
 		$NEEOVars = $this->ReadPropertyBoolean("NEEOVars");
 		if ($NEEOVars) {
 			$this->CreateNEEOVariables();
-		}
-		else{
+		} else {
 			$this->DeleteNEEOVariables();
 		}
 
@@ -143,20 +248,27 @@ class NEEORemoteDevice extends IPSModule
 		$device = json_decode($device_config);
 		$macros = $device->macros;
 		$details = $device->details;
-		$this->SendDebug("NEEO Device", "details: ". json_encode($details), 0);
+		$this->SendDebug("NEEO Device", "details: " . json_encode($details), 0);
 		$manufacturer = $details->manufacturer;
-		$this->SendDebug("NEEO Device", "manufacturer: ". $manufacturer, 0);
+		$this->SendDebug("NEEO Device", "manufacturer: " . $manufacturer, 0);
 		$name = $details->name;
-		$this->SendDebug("NEEO Device", "name: ". $name, 0);
+		$this->SendDebug("NEEO Device", "name: " . $name, 0);
+		// NEEO Cranium
+		if ($manufacturer == "NEEO" && $name == "Cranium")
+		{
+			$objectid = $this->RegisterVariableBoolean('BRAIN_LED_STATE', $this->Translate('LED State'), '~Switch', $this->_getPosition());
+			$this->SendDebug("NEEO Device", "variable LED STATE object id : " . $objectid, 0);
+			$this->EnableAction('BRAIN_LED_STATE');
+			$this->SetBrainReboot();
+		}
+
 		// MEDIAPLAYER (Shield etc.)
 		if ($type == "MEDIAPLAYER") {
 			if ($device_type == "mediaplayer") {
 				// Nvidia Shield
-				if($manufacturer == "Nvidia")
-				{
+				if ($manufacturer == "Nvidia") {
 					$shield = strpos($name, "SHIELD TV");
-					if($shield >= 0)
-					{
+					if ($shield >= 0) {
 						$keys_miscellaneous = [
 							["command" => "Home", "icon" => "HouseRemote"]
 						];
@@ -188,7 +300,7 @@ class NEEORemoteDevice extends IPSModule
 			if ($commandname == "POWER ON" || $commandname == "POWER_ON") {
 				$this->SendDebug("NEEO Device", "Setup variable STATE", 0);
 				$objectid = $this->RegisterVariableBoolean('STATE', $this->Translate('State'), '~Switch', $this->_getPosition());
-				$this->SendDebug("NEEO Device", "variable STATE object id : ". $objectid, 0);
+				$this->SendDebug("NEEO Device", "variable STATE object id : " . $objectid, 0);
 				$this->EnableAction('STATE');
 			}
 			if ($commandname == "DIGIT 0") {
@@ -199,11 +311,9 @@ class NEEORemoteDevice extends IPSModule
 				if ($type == "MEDIAPLAYER") {
 					if ($device_type == "mediaplayer") {
 						// Nvidia Shield
-						if($manufacturer == "Nvidia")
-						{
+						if ($manufacturer == "Nvidia") {
 							$shield = strpos($name, "SHIELD TV");
-							if($shield >= 0)
-							{
+							if ($shield >= 0) {
 								$keys_tranportbasic = [
 									["command" => "Stop", "icon" => ""],
 									["command" => "Play", "icon" => ""],
@@ -213,8 +323,7 @@ class NEEORemoteDevice extends IPSModule
 								];
 								$this->SetTransportBasic($name, $keys_tranportbasic);
 							}
-						}
-						else{
+						} else {
 							$keys_tranportbasic = [
 								["command" => "Stop", "icon" => ""],
 								["command" => "Play", "icon" => ""],
@@ -328,7 +437,6 @@ X
 		// PROJECTOR
 
 
-
 		// DVB
 
 		// TV
@@ -380,7 +488,6 @@ X
 		// PROJECTOR
 
 
-
 		// DVB
 
 		// TV
@@ -417,24 +524,23 @@ X
 			]
 		);
 		$objectid = $this->RegisterVariableInteger("NumericBasic", $this->Translate('Numeric Basic'), "NEEO.NumericBasic", $this->_getPosition());
-		$this->SendDebug("NEEO Device", "variable NumericBasic object id : ". $objectid, 0);
+		$this->SendDebug("NEEO Device", "variable NumericBasic object id : " . $objectid, 0);
 		$this->EnableAction('NumericBasic');
 	}
 
 	protected function SetTransportBasic($devicename, $keys_tranportbasic)
 	{
 		$devicename = $this->CreateIdent($devicename);
-		$MaxValue = count($keys_tranportbasic)-1;
+		$MaxValue = count($keys_tranportbasic) - 1;
 		$associations = [];
 		$i = 0;
-		foreach($keys_tranportbasic as $key_tranportbasic)
-		{
+		foreach ($keys_tranportbasic as $key_tranportbasic) {
 			$associations[] = [$i, $this->Translate($key_tranportbasic["command"]), $key_tranportbasic["icon"], -1];
 			$i++;
 		}
 		$this->SendDebug("NEEO Device", "Setup variable transport basic", 0);
 		$this->RegisterProfileAssociation(
-			'NEEO.TransportBasic.'.$devicename,
+			'NEEO.TransportBasic.' . $devicename,
 			'',
 			'',
 			'',
@@ -445,25 +551,24 @@ X
 			1,
 			$associations
 		);
-		$objectid = $this->RegisterVariableInteger("TransportBasic", $this->Translate('Transport Basic'), "NEEO.TransportBasic.".$devicename, $this->_getPosition());
-		$this->SendDebug("NEEO Device", "variable TransportBasic object id : ". $objectid, 0);
+		$objectid = $this->RegisterVariableInteger("TransportBasic", $this->Translate('Transport Basic'), "NEEO.TransportBasic." . $devicename, $this->_getPosition());
+		$this->SendDebug("NEEO Device", "variable TransportBasic object id : " . $objectid, 0);
 		$this->EnableAction('TransportBasic');
 	}
 
 	protected function SetTransportExtended($devicename, $keys_tranportextended)
 	{
 		$devicename = $this->CreateIdent($devicename);
-		$MaxValue = count($keys_tranportextended)-1;
+		$MaxValue = count($keys_tranportextended) - 1;
 		$associations = [];
 		$i = 0;
-		foreach($keys_tranportextended as $key_tranportextended)
-		{
+		foreach ($keys_tranportextended as $key_tranportextended) {
 			$associations[] = [$i, $this->Translate($key_tranportextended["command"]), $key_tranportextended["icon"], -1];
 			$i++;
 		}
 		$this->SendDebug("NEEO Device", "Setup variable transport extended", 0);
 		$this->RegisterProfileAssociation(
-			'NEEO.TransportExtended.'.$devicename,
+			'NEEO.TransportExtended.' . $devicename,
 			'',
 			'',
 			'',
@@ -474,25 +579,24 @@ X
 			1,
 			$associations
 		);
-		$objectid = $this->RegisterVariableInteger("TransportExtended", $this->Translate('Transport Extended'), "NEEO.TransportExtended.".$devicename, $this->_getPosition());
-		$this->SendDebug("NEEO Device", "variable TransportExtended object id : ". $objectid, 0);
+		$objectid = $this->RegisterVariableInteger("TransportExtended", $this->Translate('Transport Extended'), "NEEO.TransportExtended." . $devicename, $this->_getPosition());
+		$this->SendDebug("NEEO Device", "variable TransportExtended object id : " . $objectid, 0);
 		$this->EnableAction('TransportExtended');
 	}
 
 	protected function SetMiscellaneous($devicename, $keys_miscellaneous)
 	{
 		$devicename = $this->CreateIdent($devicename);
-		$MaxValue = count($keys_miscellaneous)-1;
+		$MaxValue = count($keys_miscellaneous) - 1;
 		$associations = [];
 		$i = 0;
-		foreach($keys_miscellaneous as $key_miscellaneous)
-		{
+		foreach ($keys_miscellaneous as $key_miscellaneous) {
 			$associations[] = [$i, $this->Translate($key_miscellaneous["command"]), $key_miscellaneous["icon"], -1];
 			$i++;
 		}
 		$this->SendDebug("NEEO Device", "Setup variable miscellaneous", 0);
 		$this->RegisterProfileAssociation(
-			'NEEO.Miscellaneous.'.$devicename,
+			'NEEO.Miscellaneous.' . $devicename,
 			'',
 			'',
 			'',
@@ -503,25 +607,24 @@ X
 			1,
 			$associations
 		);
-		$objectid = $this->RegisterVariableInteger("Miscellaneous", $this->Translate('Miscellaneous'), "NEEO.Miscellaneous.".$devicename, $this->_getPosition());
-		$this->SendDebug("NEEO Device", "variable miscellaneous object id : ". $objectid, 0);
+		$objectid = $this->RegisterVariableInteger("Miscellaneous", $this->Translate('Miscellaneous'), "NEEO.Miscellaneous." . $devicename, $this->_getPosition());
+		$this->SendDebug("NEEO Device", "variable miscellaneous object id : " . $objectid, 0);
 		$this->EnableAction('Miscellaneous');
 	}
 
 	protected function SetNavigationBasic($devicename, $keys_navigationbasic)
 	{
 		$devicename = $this->CreateIdent($devicename);
-		$MaxValue = count($keys_navigationbasic)-1;
+		$MaxValue = count($keys_navigationbasic) - 1;
 		$associations = [];
 		$i = 0;
-		foreach($keys_navigationbasic as $key_navigationbasic)
-		{
+		foreach ($keys_navigationbasic as $key_navigationbasic) {
 			$associations[] = [$i, $this->Translate($key_navigationbasic["command"]), $key_navigationbasic["icon"], -1];
 			$i++;
 		}
 		$this->SendDebug("NEEO Device", "Setup variable NavigationBasic", 0);
 		$this->RegisterProfileAssociation(
-			'NEEO.NavigationBasic.'.$devicename,
+			'NEEO.NavigationBasic.' . $devicename,
 			'',
 			'',
 			'',
@@ -532,25 +635,24 @@ X
 			1,
 			$associations
 		);
-		$objectid = $this->RegisterVariableInteger("NavigationBasic", $this->Translate('NavigationBasic'), "NEEO.NavigationBasic.".$devicename, $this->_getPosition());
-		$this->SendDebug("NEEO Device", "variable NavigationBasic object id : ". $objectid, 0);
+		$objectid = $this->RegisterVariableInteger("NavigationBasic", $this->Translate('NavigationBasic'), "NEEO.NavigationBasic." . $devicename, $this->_getPosition());
+		$this->SendDebug("NEEO Device", "variable NavigationBasic object id : " . $objectid, 0);
 		$this->EnableAction('NavigationBasic');
 	}
 
 	protected function SetNavigationDVD($devicename, $keys_navigationdvd)
 	{
 		$devicename = $this->CreateIdent($devicename);
-		$MaxValue = count($keys_navigationdvd)-1;
+		$MaxValue = count($keys_navigationdvd) - 1;
 		$associations = [];
 		$i = 0;
-		foreach($keys_navigationdvd as $key_navigationdvd)
-		{
+		foreach ($keys_navigationdvd as $key_navigationdvd) {
 			$associations[] = [$i, $this->Translate($key_navigationdvd["command"]), $key_navigationdvd["icon"], -1];
 			$i++;
 		}
 		$this->SendDebug("NEEO Device", "Setup variable NavigationDVD", 0);
 		$this->RegisterProfileAssociation(
-			'NEEO.NavigationDVD.'.$devicename,
+			'NEEO.NavigationDVD.' . $devicename,
 			'',
 			'',
 			'',
@@ -561,8 +663,8 @@ X
 			1,
 			$associations
 		);
-		$objectid = $this->RegisterVariableInteger("NavigationDVD", $this->Translate('NavigationDVD'), "NEEO.NavigationDVD.".$devicename, $this->_getPosition());
-		$this->SendDebug("NEEO Device", "variable NavigationDVD object id : ". $objectid, 0);
+		$objectid = $this->RegisterVariableInteger("NavigationDVD", $this->Translate('NavigationDVD'), "NEEO.NavigationDVD." . $devicename, $this->_getPosition());
+		$this->SendDebug("NEEO Device", "variable NavigationDVD object id : " . $objectid, 0);
 		$this->EnableAction('NavigationDVD');
 	}
 
@@ -586,26 +688,46 @@ X
 			]
 		);
 		$objectid = $this->RegisterVariableInteger("Volume", $this->Translate('Volume'), "NEEO.Volume", $this->_getPosition());
-		$this->SendDebug("NEEO Device", "variable Volume object id : ". $objectid, 0);
+		$this->SendDebug("NEEO Device", "variable Volume object id : " . $objectid, 0);
 		$this->EnableAction('Volume');
+	}
+
+	protected function SetBrainReboot()
+	{
+		$this->SendDebug("NEEO Device", "Setup variable Reboot", 0);
+		$this->RegisterProfileAssociation(
+			'NEEO.Brian.Reboot',
+			'',
+			'',
+			'',
+			0,
+			0,
+			0,
+			0,
+			1,
+			[
+				[0, $this->Translate('Reboot'), '', -1]
+			]
+		);
+		$objectid = $this->RegisterVariableInteger("BRAIN_REBOOT", $this->Translate('Reboot'), "NEEO.Brian.Reboot", $this->_getPosition());
+		$this->SendDebug("NEEO Device", "variable Reboot object id : " . $objectid, 0);
+		$this->EnableAction('BRAIN_REBOOT');
 	}
 
 	private function CreateIdent($str)
 	{
 		$search = array("ä", "ö", "ü", "ß", "Ä", "Ö",
-			"Ü", "&", "é", "á", "ó",
-			" :)", " :D", " :-)", " :P",
-			" :O", " ;D", " ;)", " ^^",
-			" :|", " :-/", ":)", ":D",
-			":-)", ":P", ":O", ";D", ";)",
-			"^^", ":|", ":-/", "(", ")", "[", "]",
-			"<", ">", "!", "\"", "§", "$", "%", "&",
-			"/", "(", ")", "=", "?", "`", "´", "*", "'",
-			"-", ":", ";", "²", "³", "{", "}",
-			"\\", "~", "#", "+", ".", ",",
-			"=", ":", "=)");
+			"Ü", "&", "é", "á", "ó", "-", " :)",
+			" :D", " :-)", " :P", " :O", " ;D", " ;)", " ^^",
+			" :|", " :-/", ":)", ":D", ":-)", ":P", ":O",
+			";D", ";)", "^^", ":|", ":-/", "(", ")",
+			"[", "]", "<", ">", "!", "\"", "§",
+			"$", "%", "&", "/", "(", ")", "=",
+			"?", "`", "´", "*", "'", ":", ";",
+			"²", "³", "{", "}", "\\", "~", "#",
+			"+", ".", ",", "=", ":", "=)");
 		$replace = array("ae", "oe", "ue", "ss", "Ae", "Oe",
-			"Ue", "und", "e", "a", "o", "", "",
+			"Ue", "und", "e", "a", "o", "_", "",
 			"", "", "", "", "", "", "", "", "",
 			"", "", "", "", "", "", "", "", "",
 			"", "", "", "", "", "", "", "", "",
@@ -646,7 +768,7 @@ X
 		}
 		if (property_exists($payload, 'actionparameter')) {
 			$actionparameter = $payload->actionparameter;
-			$this->SendDebug("NEEO Recieve:", "Action parameter: " . $actionparameter, 0);
+			$this->SendDebug("NEEO Recieve:", "Action parameter: " . json_encode($actionparameter), 0);
 		}
 		if (property_exists($payload, 'recipe')) {
 			$recipe = $payload->recipe;
@@ -654,15 +776,14 @@ X
 		}
 		$NEEOForwardScript = $this->ReadPropertyBoolean("NEEOForwardScript");
 		$NEEOForwardScriptID = $this->ReadPropertyInteger("NEEOForwardScriptID");
-		if($NEEOForwardScript == true && $NEEOForwardScriptID != 0)
-		{
-			IPS_RunScriptEx($NEEOForwardScriptID,  array("action" => $action, "device" => $device, "room" => $room, "actionparameter" => $actionparameter, "recipe" => $recipe));
+		if ($NEEOForwardScript == true && $NEEOForwardScriptID != 0) {
+			IPS_RunScriptEx($NEEOForwardScriptID, array("action" => $action, "device" => $device, "room" => $room, "actionparameter" => $actionparameter, "recipe" => $recipe));
 		}
 
-		$this->WriteValues($action, $actionparameter);
+		$this->WriteValues($action, $actionparameter, $device);
 	}
 
-	protected function WriteValues($action, $actionparameter = NULL)
+	protected function WriteValues($action, $actionparameter = NULL, $device = NULL)
 	{
 		if ($action == "POWER_OFF") {
 			$this->SetValue("STATE", false);
@@ -671,6 +792,28 @@ X
 		if ($action == "POWER_ON") {
 			$this->SetValue("STATE", true);
 			$this->SendDebug("NEEO Recieve:", "Set State to true", 0);
+		}
+		if ($action == "Light" && $actionparameter == 0) {
+			$this->SetValue("STATE", false);
+			$this->SendDebug("NEEO Recieve:", "Set State to false", 0);
+		}
+		if ($action == "Light" && $actionparameter == 1) {
+			$this->SetValue("STATE", true);
+			$this->SendDebug("NEEO Recieve:", "Set State to true", 0);
+		}
+		if ($action == "LED_ON") {
+			if($device == "NEEO Cranium")
+			{
+				$this->SetValue("BRAIN_LED_STATE", true);
+				$this->SendDebug("NEEO Recieve:", "Set LED State to true", 0);
+			}
+		}
+		if ($action == "LED_OFF") {
+			if($device == "NEEO Cranium")
+			{
+				$this->SetValue("BRAIN_LED_STATE", false);
+				$this->SendDebug("NEEO Recieve:", "Set LED State to false", 0);
+			}
 		}
 		if ($action == "brightness") {
 			if ($actionparameter == 0) {
@@ -761,7 +904,7 @@ X
 	}
 
 	// Trigger a Macro (Push a button)
-	protected function Trigger_Makro($Macro_KEY)
+	public function Trigger_Makro($Macro_KEY)
 	{
 		$command = '/v1/projects/home/rooms/' . $this->ReadPropertyString("device_roomKey") . '/devices/' . $this->ReadPropertyString("deviceKey") . '/macros/' . $Macro_KEY . '/trigger';
 		$config = $this->SendData('GET', $command);
@@ -769,7 +912,7 @@ X
 	}
 
 	// trigger a recipe
-	protected function Trigger_Recipe($Macro_KEY)
+	public function Trigger_Recipe($Macro_KEY)
 	{
 		$command = '/v1/projects/home/rooms/' . $this->ReadPropertyString("device_roomKey") . '/devices/' . $this->ReadPropertyString("deviceKey") . '/macros/' . $Macro_KEY . '/trigger';
 		$config = $this->SendData('GET', $command);
@@ -790,6 +933,14 @@ X
 		$command = '/v1/projects/home/rooms/' . $this->ReadPropertyString("device_roomKey") . '/devices/' . $this->ReadPropertyString("deviceKey") . '/favorites/' . $channel . '/trigger';
 		$config = $this->SendData('GET', $command);
 		return $config;
+	}
+
+	/** Set Brightness
+	 * @param int $value 0- 255
+	 */
+	public function SetBrightness(int $value)
+	{
+		$this->Set_Slider("brightness", $value);
 	}
 
 	// Set Slider
@@ -874,17 +1025,71 @@ X
 		return $response;
 	}
 
-	protected function GetMacroKey($command_type)
+	public function LED_On()
 	{
-		$macros_JSON = $this->ReadPropertyString("macros");
-		$macros = json_decode($macros_JSON);
-		foreach ($macros as $key => $macro) {
-			if ($key == $command_type) {
-				$macro_key = $macro->key;
-				return $macro_key;
-			}
+		$cranium = $this->CheckCranium();
+		if($cranium)
+		{
+			$macro_key_led_on = $this->GetMacroKey("LED_ON");
+			$this->SendDebug("NEEO Cranium", "LED on", 0);
+			$this->SendDebug("NEEO Cranium", "macro key:" . $macro_key_led_on, 0);
+			$response = $this->Trigger_Makro($macro_key_led_on);
+			return $response;
 		}
-		return false;
+		else{
+			$this->SendDebug("NEEO Cranium", "No cranium device found", 0);
+			return false;
+		}
+	}
+
+	public function LED_Off()
+	{
+		$cranium = $this->CheckCranium();
+		if($cranium)
+		{
+			$macro_key_led_off = $this->GetMacroKey("LED_OFF");
+			$this->SendDebug("NEEO Cranium", "LED off", 0);
+			$this->SendDebug("NEEO Cranium", "macro key:" . $macro_key_led_off, 0);
+			$response = $this->Trigger_Makro($macro_key_led_off);
+			return $response;
+		}
+		else{
+			$this->SendDebug("NEEO Cranium", "No cranium device found", 0);
+			return false;
+		}
+	}
+
+	public function Brain_Reboot()
+	{
+		$cranium = $this->CheckCranium();
+		if($cranium)
+		{
+			$macro_key_led_on = $this->GetMacroKey("REBOOT_BRAIN");
+			$this->SendDebug("NEEO Cranium", "Reboot Brain", 0);
+			$this->SendDebug("NEEO Cranium", "macro key:" . $macro_key_led_on, 0);
+			$response = $this->Trigger_Makro($macro_key_led_on);
+			return $response;
+		}
+		else{
+			$this->SendDebug("NEEO Cranium", "No cranium device found", 0);
+			return false;
+		}
+	}
+
+	private function CheckCranium()
+	{
+		$cranium = false;
+		$device_config = $this->Get_Device();
+		$device = json_decode($device_config);
+		$details = $device->details;
+		$manufacturer = $details->manufacturer;
+		$name = $details->name;
+		// NEEO Cranium
+		if ($manufacturer == "NEEO" && $name == "Cranium")
+		{
+			$cranium = true;
+		}
+		return $cranium;
 	}
 
 	// Recipes
@@ -919,12 +1124,12 @@ X
 		return $config;
 	}
 
-	private function SendData(string $Method, $Uri, $content = NULL)
+	private function SendData(string $Method, $command, $content = NULL)
 	{
 		$Data['DataID'] = '{D9983673-4093-BE00-3D73-84D6124CB016}';
-		$Data['Buffer'] = ['Method' => $Method, 'Uri' => $Uri, 'Content' => $content];
+		$Data['Buffer'] = ['Method' => $Method, 'Command' => $command, 'Content' => $content];
 		$this->SendDebug('Method:', $Method, 0);
-		$this->SendDebug('Uri:', $Uri, 0);
+		$this->SendDebug('Command:', $command, 0);
 		$this->SendDebug('Content:', $content, 0);
 		$ResultString = @$this->SendDataToParent(json_encode($Data));
 		return $ResultString;
@@ -939,6 +1144,18 @@ X
 				break;
 			case "LEVEL":
 				$this->Set_Slider("brightness", $Value);
+				break;
+			case "BRAIN_LED_STATE":
+				if($Value)
+				{
+					$this->LED_On();
+				}
+				else{
+					$this->LED_Off();
+				}
+				break;
+			case "BRAIN_REBOOT":
+				$this->Brain_Reboot();
 				break;
 			default:
 				$this->SendDebug("NEEO", "Invalid ident", 0);
@@ -1063,16 +1280,14 @@ X
 	protected function FormHead()
 	{
 		$type = $this->ReadPropertyString("type");
-		if($type == "")
-		{
+		if ($type == "") {
 			$form = [
 				[
 					'type' => 'Label',
 					'label' => 'Please do not create a device manually, you have to use the NEEO configurator for setup'
 				]
 			];
-		}
-		else{
+		} else {
 			$form = [
 				[
 					'type' => 'CheckBox',
@@ -1202,8 +1417,7 @@ X
 				'deviceKey' => $deviceKey
 			]
 		];
-		if($macros)
-		{
+		if ($macros) {
 			foreach ($macros as $macroname => $macro) {
 				$id++;
 				$macro_label = $macro->label;
@@ -1221,8 +1435,7 @@ X
 	{
 		$macros_JSON = $this->ReadPropertyString("macros");
 		$macros = false;
-		if($macros_JSON != "")
-		{
+		if ($macros_JSON != "") {
 			$macros = json_decode($macros_JSON);
 			foreach ($macros as $macroname => $macro) {
 				$macro_key = $macro->key;

@@ -269,17 +269,17 @@ class NEEOIO extends IPSModule
 		if(property_exists($data, 'Method'))
 		{
 			$method = $data->Method;
-			$uri = $data->Uri;
+			$command = $data->Command;
 			$content = $data->Content;
 			$this->SendDebug('Method:', $method, 0);
-			$this->SendDebug('Uri:', $uri, 0);
+			$this->SendDebug('Command:', $command, 0);
 			if($method == "GET")
 			{
-				$result = $this->Send_NEEO_GET($uri);
+				$result = $this->Send_NEEO_GET($command);
 			}
 			if($method == "PUT")
 			{
-				$result = $this->Send_NEEO_PUT($uri, $content);
+				$result = $this->Send_NEEO_PUT($command, $content);
 			}
 			return $result;
 		}
@@ -354,23 +354,6 @@ class NEEOIO extends IPSModule
 	protected function Get_Room_Devices($Room_KEY)
 	{
 		$command = '/v1/projects/home/rooms/'.$Room_KEY.'/devices/';
-		$config = $this->Send_NEEO_GET($command);
-		return $config;
-	}
-
-
-	// Get a specific device and it's child configurations
-	protected function Get_Device($Room_KEY, $Device_KEY)
-	{
-		$command = '/v1/projects/home/rooms/'.$Room_KEY.'/devices/'.$Device_KEY.'/';
-		$config = $this->Send_NEEO_GET($command);
-		return $config;
-	}
-
-	// Get all macros from a specific device
-	protected function Get_Device_Makros($Room_KEY, $Device_KEY)
-	{
-		$command = '/v1/projects/home/rooms/'.$Room_KEY.'/devices/'.$Device_KEY.'/macros';
 		$config = $this->Send_NEEO_GET($command);
 		return $config;
 	}

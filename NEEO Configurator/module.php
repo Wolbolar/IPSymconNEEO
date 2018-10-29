@@ -42,9 +42,11 @@ class NEEOConfigurator extends IPSModule
 		$NEEOInstanceIDList = IPS_GetInstanceListByModuleID('{67252707-E627-4DFC-07D3-438452F20B23}'); // NEEO Devices
 		$MyParent = IPS_GetInstance($this->InstanceID)['ConnectionID'];
 		$hubip = IPS_GetProperty($MyParent,'Host');
+		$this->SendDebug('NEEO hubip', $hubip, 0);
 		$systeminfo = $this->SendData('GET', '/v1/systeminfo/');
 		$systemdata = json_decode($systeminfo);
 		$hostname = $systemdata->hostname;
+		$this->SendDebug('NEEO hostname', $hostname, 0);
 		$config = $this->SendData('GET', '/v1/projects/home/');
 
 
@@ -161,6 +163,7 @@ class NEEOConfigurator extends IPSModule
 								[
 									"moduleID" => "{67252707-E627-4DFC-07D3-438452F20B23}",
 									"configuration" =>  [
+										"neeo_hostname" => $hostname,
 										"type" => $type,
 										"device" => $adapterName,
 										"room_name" => $room_name,

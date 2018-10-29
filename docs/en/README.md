@@ -113,7 +113,7 @@ In the device you can see what kind of commands are available in NEEO for this d
  NEEORD_PowerOn($InstanceID);
  ```   
  
- Parameter _$InstanceID_ __*ObjektID*__ from the NEEO IO Instance
+ Parameter _$InstanceID_ __*ObjectID*__ from the NEEO device instance
 	
   _**Switch off a device**_
    
@@ -121,9 +121,31 @@ In the device you can see what kind of commands are available in NEEO for this d
   NEEORD_PowerOff($InstanceID);
   ```   
   
-  Parameter _$InstanceID_ __*ObjektID*__ from the NEEO IO Instance
+  Parameter _$InstanceID_ __*ObjectID*__ from the NEEO device instance
  
-	
+ _**Switch on the LED of the NEEO Brain**_
+   
+ ```php
+ NEEO_LED_On($InstanceID);
+ ```   
+  
+ Parameter _$InstanceID_ __*ObjectID*__ from the NEEO Cranium instance
+ 
+ _**Switch off the LED of the NEEO Brain**_
+   
+ ```php
+ NEEO_LED_Off($InstanceID);
+ ```   
+  
+ Parameter _$InstanceID_ __*ObjectID*__ from the NEEO Cranium instance 
+
+ _**Reboot of the NEEO Brain**_
+   
+ ```php
+ NEEO_Brain_Reboot($InstanceID);
+ ```   
+  
+ Parameter _$InstanceID_ __*ObjectID*__ from the NEEO Cranium instance	
 
 ## 5. Configuration:
 

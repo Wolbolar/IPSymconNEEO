@@ -119,18 +119,42 @@ In dem Gerät sieht man dann was das Gerät in NEEO selber an Schaltoptionen zur
  _**Schaltet ein Gerät ein**_
   
  ```php
- NEEORD_PowerOn($InstanceID);
+ NEEO_PowerOn($InstanceID);
  ```   
  
- Parameter _$InstanceID_ __*ObjektID*__ der NEEO IO Instanz
+ Parameter _$InstanceID_ __*ObjektID*__ der NEEO Device Instanz
 	
-  _**Schaltet ein Gerät aus**_
+ _**Schaltet ein Gerät aus**_
    
-  ```php
-  NEEORD_PowerOff($InstanceID);
-  ```   
+ ```php
+ NEEO_PowerOff($InstanceID);
+ ```   
   
-  Parameter _$InstanceID_ __*ObjektID*__ der NEEO IO Instanz
+ Parameter _$InstanceID_ __*ObjektID*__ der NEEO Device Instanz
+  
+ _**Schaltet LED des Brain ein**_
+   
+ ```php
+ NEEO_LED_On($InstanceID);
+ ```   
+  
+ Parameter _$InstanceID_ __*ObjektID*__ der NEEO Cranium Instanz
+ 
+ _**Schaltet LED des Brain aus**_
+   
+ ```php
+ NEEO_LED_Off($InstanceID);
+ ```   
+  
+ Parameter _$InstanceID_ __*ObjektID*__ der NEEO Cranium Instanz 
+
+ _**Reboot des NEEO Brain**_
+   
+ ```php
+ NEEO_Brain_Reboot($InstanceID);
+ ```   
+  
+ Parameter _$InstanceID_ __*ObjektID*__ der NEEO Cranium Instanz
 
 ## 5. Konfiguration:
 
