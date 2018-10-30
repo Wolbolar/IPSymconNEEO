@@ -814,7 +814,7 @@ class NEEOIO extends IPSModule
 			[
 				'type' => 'Button',
 				'label' => 'Get Info',
-				'onClick' => 'NEEO_Get_System_Info($id);'
+				'onClick' => 'NEEOIO_Get_System_Info($id);'
 			]
 		];
 

@@ -219,8 +219,7 @@ class NEEORemoteDevice extends IPSModule
 		$macros = $this->GetMacros();
 		foreach ($macros as $command_type => $macro) {
 			$macro_key = $macro->key;
-			if($macro_command == $command_type)
-			{
+			if ($macro_command == $command_type) {
 				return $macro_key;
 			}
 		}
@@ -254,8 +253,7 @@ class NEEORemoteDevice extends IPSModule
 		$name = $details->name;
 		$this->SendDebug("NEEO Device", "name: " . $name, 0);
 		// NEEO Cranium
-		if ($manufacturer == "NEEO" && $name == "Cranium")
-		{
+		if ($manufacturer == "NEEO" && $name == "Cranium") {
 			$objectid = $this->RegisterVariableBoolean('BRAIN_LED_STATE', $this->Translate('LED State'), '~Switch', $this->_getPosition());
 			$this->SendDebug("NEEO Device", "variable LED STATE object id : " . $objectid, 0);
 			$this->EnableAction('BRAIN_LED_STATE');
@@ -296,6 +294,61 @@ class NEEORemoteDevice extends IPSModule
 			}
 		}
 
+		// GAMECONSOLE
+		if ($type == "GAMECONSOLE") {
+			// Nvidia Shield
+			if ($manufacturer == "Nvidia" || $manufacturer == "NVIDIA") {
+				$shield = strpos($name, "SHIELD TV");
+				if ($shield >= 0) {
+					$keys_miscellaneous = [
+						["command" => "Home", "icon" => "HouseRemote"]
+					];
+					$this->SetMiscellaneous($name, $keys_miscellaneous);
+					$keys_navigationbasic = [
+						["command" => "DirectionDown", "icon" => "HollowArrowDown"],
+						["command" => "DirectionLeft", "icon" => "HollowArrowLeft"],
+						["command" => "DirectionRight", "icon" => "HollowArrowRight"],
+						["command" => "DirectionUp", "icon" => "HollowArrowUp"],
+						["command" => "Ok", "icon" => "Execute"]
+					];
+					$this->SetNavigationBasic($name, $keys_navigationbasic);
+					$keys_navigationdvd = [
+						["command" => "Back", "icon" => "HollowArrowLeft"]
+					];
+					$this->SetNavigationDVD($name, $keys_navigationdvd);
+					$keys_tranportextended = [
+						["command" => "Skip Back", "icon" => ""],
+						["command" => "Skip Forward", "icon" => ""]
+					];
+					$this->SetTransportExtended($name, $keys_tranportextended);
+					$this->SetVarVolume();
+				}
+			}
+			// Playstation
+			if ($manufacturer == "Sony" || $manufacturer == "SONY") {
+				$keys_miscellaneous = [
+					["command" => "Home", "icon" => "HouseRemote"]
+				];
+				$this->SetMiscellaneous($name, $keys_miscellaneous);
+				$keys_navigationbasic = [
+					["command" => "DirectionDown", "icon" => "HollowArrowDown"],
+					["command" => "DirectionLeft", "icon" => "HollowArrowLeft"],
+					["command" => "DirectionRight", "icon" => "HollowArrowRight"],
+					["command" => "DirectionUp", "icon" => "HollowArrowUp"]
+				];
+				$this->SetNavigationBasic($name, $keys_navigationbasic);
+				$keys_navigationdvd = [
+					["command" => "Back", "icon" => "HollowArrowLeft"]
+				];
+				$this->SetNavigationDVD($name, $keys_navigationdvd);
+				$keys_tranportextended = [
+					["command" => "Skip Back", "icon" => ""],
+					["command" => "Skip Forward", "icon" => ""]
+				];
+				$this->SetTransportExtended($name, $keys_tranportextended);
+				$this->SetVarVolume();
+			}
+		}
 		foreach ($macros as $commandname => $macro) {
 			if ($commandname == "POWER ON" || $commandname == "POWER_ON") {
 				$this->SendDebug("NEEO Device", "Setup variable STATE", 0);
@@ -323,6 +376,16 @@ class NEEORemoteDevice extends IPSModule
 								];
 								$this->SetTransportBasic($name, $keys_tranportbasic);
 							}
+						} // Playstation
+						elseif ($manufacturer == "Sony") {
+							$keys_tranportbasic = [
+								["command" => "Stop", "icon" => ""],
+								["command" => "Play", "icon" => ""],
+								["command" => "Pause", "icon" => ""],
+								["command" => "Rewind", "icon" => ""],
+								["command" => "FastForward", "icon" => ""]
+							];
+							$this->SetTransportBasic($name, $keys_tranportbasic);
 						} else {
 							$keys_tranportbasic = [
 								["command" => "Stop", "icon" => ""],
@@ -335,8 +398,39 @@ class NEEORemoteDevice extends IPSModule
 						}
 					}
 				}
-
+				// GAMECONSOLE
+				if ($type == "GAMECONSOLE") {
+					// Nvidia Shield
+					if ($manufacturer == "Nvidia" || $manufacturer == "NVIDIA") {
+						$shield = strpos($name, "SHIELD TV");
+						if ($shield >= 0) {
+							$keys_tranportbasic = [
+								["command" => "Stop", "icon" => ""],
+								["command" => "Play", "icon" => ""],
+								["command" => "Pause", "icon" => ""],
+								["command" => "Rewind", "icon" => ""],
+								["command" => "FastForward", "icon" => ""]
+							];
+							$this->SetTransportBasic($name, $keys_tranportbasic);
+						}
+					}
+					// Playstation
+					if ($manufacturer == "Sony" || $manufacturer == "SONY") {
+						$shield = strpos($name, "SHIELD TV");
+						if ($shield >= 0) {
+							$keys_tranportbasic = [
+								["command" => "Stop", "icon" => ""],
+								["command" => "Play", "icon" => ""],
+								["command" => "Pause", "icon" => ""],
+								["command" => "Rewind", "icon" => ""],
+								["command" => "FastForward", "icon" => ""]
+							];
+							$this->SetTransportBasic($name, $keys_tranportbasic);
+						}
+					}
+				}
 			}
+
 			// ACCESSOIRE
 			// Screen
 			if ($commandname == "SCREEN UP (WHITE)") {
@@ -362,9 +456,6 @@ class NEEORemoteDevice extends IPSModule
 			}
 
 
-			// GAMECONSOLE
-			// Playstation
-
 			/*
  * Playstation
  * ANGLE
@@ -372,11 +463,7 @@ AUDIO
 BACK
 CIRCLE
 CLEAR
-CURSOR DOWN
-CURSOR ENTER
-CURSOR LEFT
-CURSOR RIGHT
-CURSOR UP
+
 DIGIT 0
 DIGIT 1
 DIGIT 2
@@ -454,6 +541,20 @@ X
 		$device_config = $this->Get_Device();
 		$device = json_decode($device_config);
 		$macros = $device->macros;
+		$details = $device->details;
+		$this->SendDebug("NEEO Device", "details: " . json_encode($details), 0);
+		$manufacturer = $details->manufacturer;
+		$this->SendDebug("NEEO Device", "manufacturer: " . $manufacturer, 0);
+		$name = $details->name;
+		$this->SendDebug("NEEO Device", "name: " . $name, 0);
+		// NEEO Cranium
+		if ($manufacturer == "NEEO" && $name == "Cranium") {
+			$this->SendDebug("NEEO Device", "delete variable BRAIN_LED_STATE", 0);
+			$this->UnregisterVariable('BRAIN_LED_STATE');
+			$this->SendDebug("NEEO Device", "delete variable BRAIN_REBOOT", 0);
+			$this->UnregisterVariable('BRAIN_REBOOT');
+		}
+
 		foreach ($macros as $commandname => $macro) {
 			if ($commandname == "POWER ON" || $commandname == "POWER_ON") {
 				$this->SendDebug("NEEO Device", "delete variable STATE", 0);
@@ -802,15 +903,13 @@ X
 			$this->SendDebug("NEEO Recieve:", "Set State to true", 0);
 		}
 		if ($action == "LED_ON") {
-			if($device == "NEEO Cranium")
-			{
+			if ($device == "NEEO Cranium") {
 				$this->SetValue("BRAIN_LED_STATE", true);
 				$this->SendDebug("NEEO Recieve:", "Set LED State to true", 0);
 			}
 		}
 		if ($action == "LED_OFF") {
-			if($device == "NEEO Cranium")
-			{
+			if ($device == "NEEO Cranium") {
 				$this->SetValue("BRAIN_LED_STATE", false);
 				$this->SendDebug("NEEO Recieve:", "Set LED State to false", 0);
 			}
@@ -1028,15 +1127,13 @@ X
 	public function LED_On()
 	{
 		$cranium = $this->CheckCranium();
-		if($cranium)
-		{
+		if ($cranium) {
 			$macro_key_led_on = $this->GetMacroKey("LED_ON");
 			$this->SendDebug("NEEO Cranium", "LED on", 0);
 			$this->SendDebug("NEEO Cranium", "macro key:" . $macro_key_led_on, 0);
 			$response = $this->Trigger_Makro($macro_key_led_on);
 			return $response;
-		}
-		else{
+		} else {
 			$this->SendDebug("NEEO Cranium", "No cranium device found", 0);
 			return false;
 		}
@@ -1045,15 +1142,13 @@ X
 	public function LED_Off()
 	{
 		$cranium = $this->CheckCranium();
-		if($cranium)
-		{
+		if ($cranium) {
 			$macro_key_led_off = $this->GetMacroKey("LED_OFF");
 			$this->SendDebug("NEEO Cranium", "LED off", 0);
 			$this->SendDebug("NEEO Cranium", "macro key:" . $macro_key_led_off, 0);
 			$response = $this->Trigger_Makro($macro_key_led_off);
 			return $response;
-		}
-		else{
+		} else {
 			$this->SendDebug("NEEO Cranium", "No cranium device found", 0);
 			return false;
 		}
@@ -1062,15 +1157,13 @@ X
 	public function Brain_Reboot()
 	{
 		$cranium = $this->CheckCranium();
-		if($cranium)
-		{
+		if ($cranium) {
 			$macro_key_led_on = $this->GetMacroKey("REBOOT_BRAIN");
 			$this->SendDebug("NEEO Cranium", "Reboot Brain", 0);
 			$this->SendDebug("NEEO Cranium", "macro key:" . $macro_key_led_on, 0);
 			$response = $this->Trigger_Makro($macro_key_led_on);
 			return $response;
-		}
-		else{
+		} else {
 			$this->SendDebug("NEEO Cranium", "No cranium device found", 0);
 			return false;
 		}
@@ -1085,8 +1178,7 @@ X
 		$manufacturer = $details->manufacturer;
 		$name = $details->name;
 		// NEEO Cranium
-		if ($manufacturer == "NEEO" && $name == "Cranium")
-		{
+		if ($manufacturer == "NEEO" && $name == "Cranium") {
 			$cranium = true;
 		}
 		return $cranium;
@@ -1146,11 +1238,9 @@ X
 				$this->Set_Slider("brightness", $Value);
 				break;
 			case "BRAIN_LED_STATE":
-				if($Value)
-				{
+				if ($Value) {
 					$this->LED_On();
-				}
-				else{
+				} else {
 					$this->LED_Off();
 				}
 				break;
