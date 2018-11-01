@@ -33,7 +33,11 @@
       "Great Room": "Großes Zimmer",
       "Small Room": "Kleines Zimmer",
       "devices": "Geräte",
-      "NEEO Devices": "NEEO Geräte"
+      "NEEO Devices": "NEEO Geräte",
+      "NEEO configuration": "NEEO Konfiguration",
+      "NEEO configurator created.": "NEEO Konfigurator angelegt.",
+      "interface closed.": "Schnittstelle geschlossen.",
+      "Please follow the instructions.": "Bitte der Anleitung folgen."
     }
   }
 }

@@ -6,7 +6,6 @@ require_once __DIR__ . '/../libs/BufferHelper.php';
 require_once __DIR__ . '/../libs/DebugHelper.php';
 
 
-
 class NEEOConfigurator extends IPSModule
 {
 	use BufferHelper,
@@ -41,7 +40,7 @@ class NEEOConfigurator extends IPSModule
 		$config_list = [];
 		$NEEOInstanceIDList = IPS_GetInstanceListByModuleID('{67252707-E627-4DFC-07D3-438452F20B23}'); // NEEO Devices
 		$MyParent = IPS_GetInstance($this->InstanceID)['ConnectionID'];
-		$hubip = IPS_GetProperty($MyParent,'Host');
+		$hubip = IPS_GetProperty($MyParent, 'Host');
 		$this->SendDebug('NEEO hubip', $hubip, 0);
 		$systeminfo = $this->SendData('GET', '/v1/systeminfo/');
 		$systemdata = json_decode($systeminfo);
@@ -51,11 +50,9 @@ class NEEOConfigurator extends IPSModule
 
 
 		$this->SendDebug('NEEO Config', $config, 0);
-		if(!empty($config))
-		{
+		if (!empty($config)) {
 			$data = json_decode($config);
-			if(property_exists($data, "name"))
-			{
+			if (property_exists($data, "name")) {
 				$name = $data->name;
 				$this->SendDebug('NEEO name', $name, 0);
 				$version = $data->version;
@@ -67,8 +64,7 @@ class NEEOConfigurator extends IPSModule
 				$gdprAccepted = $data->gdprAccepted;
 				$this->SendDebug('NEEO gdpr accepted', $gdprAccepted, 0);
 				$rooms = $data->rooms;
-				foreach($rooms as $room)
-				{
+				foreach ($rooms as $room) {
 					$room_name = $room->name;
 					$this->SendDebug('NEEO room name', $room_name, 0);
 					$room_icon = $room->icon;
@@ -76,12 +72,11 @@ class NEEOConfigurator extends IPSModule
 					$hasController = boolval($room->hasController);
 					$this->SendDebug('NEEO has controller', print_r($hasController, true), 0);
 					$devices = $room->devices;
-					$config_list[] = [ "id" => $room_ips_id,
+					$config_list[] = ["id" => $room_ips_id,
 						"type" => $this->Translate("room"),
 						"room" => $this->Translate($room_name)
 					];
-					foreach($devices as $device)
-					{
+					foreach ($devices as $device) {
 						$instanceID = 0;
 						$device_name = $device->name;
 						$this->SendDebug('NEEO device name', $device_name, 0);
@@ -116,12 +111,10 @@ class NEEOConfigurator extends IPSModule
 						$this->SendDebug('NEEO icon', $icon, 0);
 						$powerMode = $device->powerMode;
 						$this->SendDebug('NEEO power mode', $powerMode, 0);
-						if(property_exists($device, 'macros'))
-						{
+						if (property_exists($device, 'macros')) {
 							$macros = $device->macros;
 							$macros_JSON = json_encode($macros);
-							foreach($macros as $macroname => $macro)
-							{
+							foreach ($macros as $macroname => $macro) {
 								$macro_key = $macro->key;
 								$this->SendDebug('NEEO macro key', $macro_key, 0);
 								$componentType = $macro->componentType;
@@ -140,7 +133,7 @@ class NEEOConfigurator extends IPSModule
 								$this->SendDebug('NEEO macro room key', $macro_roomKey, 0);
 							}
 						}
-						$device_info = $this->SendData('GET', '/v1/projects/home/rooms/'.$device_roomKey.'/devices/'.$deviceKey.'/');
+						$device_info = $this->SendData('GET', '/v1/projects/home/rooms/' . $device_roomKey . '/devices/' . $deviceKey . '/');
 						$this->SendDebug('NEEO device info', $device_info, 0);
 						foreach ($NEEOInstanceIDList as $NEEOInstanceID) {
 							if (IPS_GetInstance($NEEOInstanceID)['ConnectionID'] == $MyParent && $deviceKey == IPS_GetProperty($NEEOInstanceID, 'deviceKey')) {
@@ -162,7 +155,7 @@ class NEEOConfigurator extends IPSModule
 							"create" => [
 								[
 									"moduleID" => "{67252707-E627-4DFC-07D3-438452F20B23}",
-									"configuration" =>  [
+									"configuration" => [
 										"neeo_hostname" => $hostname,
 										"type" => $type,
 										"device" => $adapterName,
@@ -188,11 +181,11 @@ class NEEOConfigurator extends IPSModule
 					}
 					$room_ips_id++;
 				}
-			}else{
+			} else {
 				$this->SendDebug('NEEO Config', $data, 0);
 			}
 			$instanceWebUIID = 0;
-			$config_list[] = [ "id" => $room_ips_id,
+			$config_list[] = ["id" => $room_ips_id,
 				"type" => "room",
 				"room" => "NEEOWebUI"
 			];
@@ -217,7 +210,7 @@ class NEEOConfigurator extends IPSModule
 				"create" => [
 					[
 						"moduleID" => "{F2EB7DBC-A770-43D1-A64A-089E8B0A7C37}",
-						"configuration" =>  [
+						"configuration" => [
 							"Host" => $hubip
 						]
 					]
@@ -228,31 +221,128 @@ class NEEOConfigurator extends IPSModule
 		return $config_list;
 	}
 
-
+	/***********************************************************
+	 * Configuration Form
+	 ***********************************************************/
 
 	/**
-	 * Interne Funktion des SDK.
+	 * build configuration form
+	 * @return string
 	 */
-
 	public function GetConfigurationForm()
 	{
-		$Values = $this->Get_ListConfiguration();
-		$Form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-		/* does not work
-		if (count($Values) > 0) {
-			foreach ($Values as $key => $row) {
-				$SortRoom[$key] = $row['room'];
-				$SortType[$key] = $row['type'];
-			}
-			array_multisort($SortRoom, SORT_ASC, $SortType, SORT_ASC, $Values);
-		}
-		*/
-		$Form['actions'][0]['values'] = $Values;
-		$this->SendDebug('FORM', json_encode($Form), 0);
-		$this->SendDebug('FORM', json_last_error_msg(), 0);
-		return json_encode($Form);
+		// return current form
+		return json_encode([
+			'elements' => $this->FormHead(),
+			'actions' => $this->FormActions(),
+			'status' => $this->FormStatus()
+		]);
 	}
 
+	/**
+	 * return form configurations on configuration step
+	 * @return array
+	 */
+	protected function FormHead()
+	{
+		$form = [
+			[
+				'type' => 'Image',
+				'image' => 'data:image/png;base64, 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'
+			]
+		];
+		return $form;
+	}
+
+	/**
+	 * return form actions by token
+	 * @return array
+	 */
+	protected function FormActions()
+	{
+		$form = [
+			[
+				'type' => 'Configurator',
+				'name' => 'NEEOConfiguration',
+				'caption' => 'NEEO configuration',
+				'rowCount' => 20,
+				'add' => false,
+				'delete' => false,
+				'sort' => [
+					'column' => 'room',
+					'direction' => 'ascending'
+				],
+				'columns' => [
+					[
+						'caption' => 'ID',
+						'name' => 'id',
+						'width' => '200px',
+						'visible' => false
+					],
+					[
+						'caption' => 'Type',
+						'name' => 'type',
+						'width' => '200px'
+					],
+					[
+						'caption' => 'Room',
+						'name' => 'room',
+						'width' => '200px'
+					],
+					[
+						'caption' => 'Device',
+						'name' => 'device',
+						'width' => '200px'
+					],
+					[
+						'caption' => 'Manufacturer',
+						'name' => 'manufacturer',
+						'width' => '250px'
+					],
+					[
+						'caption' => 'Name',
+						'name' => 'name',
+						'width' => 'auto'
+					]
+				],
+				'values' => $this->Get_ListConfiguration()
+			]
+		];
+
+		return $form;
+	}
+
+	/**
+	 * return from status
+	 * @return array
+	 */
+	protected function FormStatus()
+	{
+		$form = [
+			[
+				'code' => 101,
+				'icon' => 'inactive',
+				'caption' => 'Creating instance.'
+			],
+			[
+				'code' => 102,
+				'icon' => 'active',
+				'caption' => 'NEEO configurator created.'
+			],
+			[
+				'code' => 104,
+				'icon' => 'inactive',
+				'caption' => 'interface closed.'
+			],
+			[
+				'code' => 201,
+				'icon' => 'inactive',
+				'caption' => 'Please follow the instructions.'
+			]
+		];
+
+		return $form;
+	}
 
 	/** Sendet Eine Anfrage an den IO und liefert die Antwort.
 	 *
@@ -262,7 +352,7 @@ class NEEOConfigurator extends IPSModule
 	private function SendData(string $Method, string $command)
 	{
 		$Data['DataID'] = '{99C86935-D78B-9589-41FA-4CFE517C9273}';
-		$Data['Buffer'] = ['Method' => $Method, 'Command' => $command, 'Content' => "" ];
+		$Data['Buffer'] = ['Method' => $Method, 'Command' => $command, 'Content' => ""];
 		$this->SendDebug('Method:', $Method, 0);
 		$this->SendDebug('Command:', $command, 0);
 		$this->SendDebug('Send:', json_encode($Data), 0);
