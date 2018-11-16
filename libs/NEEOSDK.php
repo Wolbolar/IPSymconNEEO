@@ -13,6 +13,82 @@ class NEEOSDK
 {
 	// device building
 
+	private $NeeoID = 0;
+	private $Device_Configuration = [];
+
+	function __construct() {
+		$config = $this->Get_Configuration();
+		if(empty($config))
+		{
+			$this->NeeoID = 0;
+		}
+		else{
+			if ( is_array( $config) ) {
+
+				end( $config );
+				$last_id = key( $config );
+				var_dump($last_id);
+				$this->NeeoID = $last_id + 1;
+			}
+		}
+		$this->Device_Configuration[$this->NeeoID]["id"] = $this->NeeoID;
+		$this->Device_Configuration[$this->NeeoID]["manufacturer"] = "NEEO";
+		$this->Device_Configuration[$this->NeeoID]["type"] = "ACCESSOIRE";
+	}
+
+	private function Set_Configuration()
+	{
+		$config_json = json_encode($this->Device_Configuration);
+		SetValue(IPS_GetObjectIDByIdent("NEEO_Config", 33521 /*[Geräte\NEEO\NEEO SRS]*/), $config_json);
+	}
+
+	private function Get_Configuration()
+	{
+		$config_json = GetValue(IPS_GetObjectIDByIdent("NEEO_Config", 33521 /*[Geräte\NEEO\NEEO SRS]*/));
+		$config = json_decode($config_json, true);
+		$this->Device_Configuration = $config;
+		return $config;
+	}
+
+	private function Get_Last_NEEOID()
+	{
+		$config = $this->Get_Configuration();
+		// last NEEOID
+		end($config);
+		$NEEOID = key($config);
+		return $NEEOID;
+	}
+
+
+	private function Get_CapabilityID()
+	{
+		$config = $this->Get_Configuration();
+		if (array_key_exists("capabilities", $config[$this->Get_Last_NEEOID()]))
+		{
+			// last capability
+			$capabilities = $config[$this->Get_Last_NEEOID()]["capabilities"];
+			end($capabilities);
+			$capabilities_id = key($capabilities);
+			$capabilities_id = $capabilities_id +1;
+		}
+		else
+		{
+			$capabilities_id = 0;
+		}
+		return $capabilities_id;
+	}
+
+	/** setAdapterName
+	 * Adaptername consists of name + objectid
+	 * * @param string $adapterName
+	 */
+	public function setAdapterName(string $adapterName)
+	{
+		$this->Device_Configuration[$this->NeeoID]["adapterName"] = $adapterName;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
+	}
+
 	/** setManufacturer
 	 * Optional parameter to set the device manufacturer. Default manufacturer is NEEO
 	 * used to find and add the device in the NEEO app.
@@ -20,9 +96,10 @@ class NEEOSDK
 	 */
 	public function setManufacturer(string $manufacturerName)
 	{
-
+		$this->Device_Configuration[$this->NeeoID]["manufacturer"] = $manufacturerName;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 	}
-
 
 	/** setType
 	 * Optional parameter to define the device type. Default type is ACCESSOIRE.
@@ -34,7 +111,9 @@ class NEEOSDK
 	 */
 	public function setType(string $type)
 	{
-
+		$this->Device_Configuration[$this->NeeoID]["type"] = $type;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 	}
 
 
@@ -45,7 +124,9 @@ class NEEOSDK
 	 */
 	public function setIcon(string $icon)
 	{
-
+		$this->Device_Configuration[$this->NeeoID]["icon"] = $icon;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 	}
 
 
@@ -56,7 +137,10 @@ class NEEOSDK
 	 */
 	public function setSpecificName(string $specificName)
 	{
-
+		$this->Device_Configuration[$this->NeeoID]["name"] = $specificName;
+		$this->Device_Configuration[$this->NeeoID]["device"]["name"] = $specificName;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 	}
 
 	/** addAdditionalSearchToken
@@ -65,7 +149,10 @@ class NEEOSDK
 	 */
 	public function addAdditionalSearchToken(string $token)
 	{
-
+		$this->Device_Configuration[$this->NeeoID]["tokens"] = $token;
+		$this->Device_Configuration[$this->NeeoID]["device"]["tokens"] = explode(" ", $this->Device_Configuration[$this->NeeoID]["tokens"]);
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 	}
 
 
@@ -131,60 +218,265 @@ class NEEOSDK
 
 	}
 
-	public function addButton()
+	/** Add a button for this device, can be called multiple times for multiple buttons.
+	 * addButton can be combined with addButtonGroups. You need to be call the addButtonHandler function.
+	 * IMPORTANT: If your device supports a discrete "Power On" and "Power Off" command, name the macros like in the example below.
+	 * addButton('POWER ON', 'Power On' )	addButton('POWER OFF', 'Power Off')
+	 * In that case the NEEO Brain automatically recognise this feature and those commands to in the prebuild Recipes.
+	 * @param string $name
+	 * @param string $label
+	 * @return array
+	 */
+	public function addButton(string $name, string $label)
 	{
-
+		$i = $this->Get_CapabilityID();
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["type"] = "button";
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["name"] = $name;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["label"] = $label;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 	}
 
-	public function addButtonGroup()
+	/** Add multiple buttons defined by the button group name.
+	 * The UI elements on the NEEO Brain are build automatically depending on the existing buttons of a device.
+	 * You can add multiple ButtonGroups to a device and you can combine ButtonGroups with addButton calls.
+	 * You need to be call the addButtonHandler function.
+	 * @param string $name
+	 * @return array
+	 */
+	public function addButtonGroup(string $name)
 	{
-
+		$i = $this->Get_CapabilityID();
+		// todo add correct type
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["type"] = "button";
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["name"] = $name;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 	}
 
-	public function addButtonHandler()
+	/** Handles the events for all the registered buttons.
+	 * This function can be only defined once per device definition and MUST be defined if you have added at least one button.
+	 * @param string $controller
+	 * @return array
+	 */
+	public function addButtonHandler(string $controller)
 	{
-
+		$i = 0;
+		// todo add controller
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["path"] = $controller;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 	}
 
-	public function addSlider()
+	/** Add a (range) slider to your custom device
+	 * @param string $name identifier of this element
+	 * @param string $label optional, visible label in the mobile app or on the NEEO Remote
+	 * @param string $range optional, custom range of slider, default 0..100
+	 * @param string $unit optional, user readable label, default %
+	 * @param string $getter function return the current slider value
+	 * @param string $action function update the current slider value
+	 * @return array
+	 */
+	public function addSlider(string $name, string $label, string $range, string $unit, string $getter, string $action)
 	{
-
+		if(empty($range))
+		{
+			$range = "[0, 100]";
+		}
+		if(empty($unit))
+		{
+			$unit = "%";
+		}
+		$i = $this->Get_CapabilityID();
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["type"] = "slider";
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["name"] = $name;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["label"] = $label;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["slider"]["type"] = "range";
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["slider"]["range"] = json_decode($range, true);;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["slider"]["unit"] = $unit;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["slider"]["sensor"] = $action;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["path"] = $getter;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 	}
 
-	public function addSensor()
+	/** Add a range/binary sensor to your custom device
+	 * @param string $name Identifier of this element
+	 * @param string $label Optional, visible label in the mobile app or on the NEEO Remote
+	 * @param string $type Type of sensor, the available types are binary, range, power (should be done using addPowerStateSensor), string, array
+	 * @param string $range Optional, custom range of sensor, default 0..100
+	 * @param string $unit Optional, user readable label, default %
+	 * @param string $getter A Function that returns the current sensor value
+	 * @return array
+	 */
+	public function addSensor(string $name, string $label, String $type, string $range, string $unit, string $getter)
 	{
-
+		if(empty($range))
+		{
+			$range = "[0, 100]";
+		}
+		if(empty($unit))
+		{
+			$unit = "%";
+		}
+		$i = $this->Get_CapabilityID();
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["type"] = "slider";
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["name"] = $name;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["label"] = $label;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["slider"]["type"] = $type;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["slider"]["range"] = json_decode($range, true);;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["slider"]["unit"] = $unit;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["path"] = $getter;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 	}
 
-	public function addPowerStateSensor()
+	/** Add a power sensor to your custom device, so the NEEO Brain knows when this device is powered on or off.
+	 * See registerSubscriptionFunction how the controller can send powerOn and powerOff notifications to the Brain.
+	 * @param string $getter
+	 * @return array
+	 */
+	public function addPowerStateSensor(string $getter)
 	{
-
+		$i = $this->Get_CapabilityID();
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["path"] = $getter;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 	}
 
-	public function addSwitch()
+	/** Add a (binary) switch to your custom element
+	 * @param string $name identifier of this element
+	 * @param string $label optional, visible label in the mobile app or on the NEEO Remote
+	 * @param string $setter update current value of the Switch
+	 * @param string $getter return current value of the Switch
+	 * @return array
+	 */
+	public function addSwitch(string $name, string $label, string $setter, string $getter)
 	{
-
+		$i = $this->Get_CapabilityID();
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["type"] = "switch";
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["name"] = $name;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["label"] = $label;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["path"] = $getter;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 	}
 
-	public function addTextLabel()
+	/** Add a text label to your custom element (for example to display the current artist)
+	 * @param string $name
+	 * @param string $label
+	 * @param string $getter
+	 * @return array
+	 */
+	public function addTextLabel(string $name, string $label, string $getter)
 	{
-
+		$i = $this->Get_CapabilityID();
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["type"] = "textlabel";
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["name"] = $name;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["label"] = $label;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["path"] = $getter;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
+		// $DevConfigAR[$NeeoID]["capabilities"][11]["sensor"] = "CHANNELACTUALTEXTLABEL_SENSOR";
 	}
 
-	public function addImageUrl()
+	/** Add an image to your custom element (for example to display the album cover of the current track)
+	 * @param string $name identifier of this element. etc. ChannelIcon
+	 * @param string $label optional, visible label in the mobile app or on the NEEO Remote. etc. Channellogo
+	 * @param string $uri HTTP URI pointing to an image resource. JPG and PNG images are supported. etc. http://www.buildup.eu/sites/default/files/pictures/picture-1-1423845685.png
+	 * @param string $size image size in the ui, either 'small' or 'large'. The small image has the size of a button while the large image is a square image using full width of the client.
+	 * @param string $controller returns the address (URL) to the current image. etc. "/device/enigma2-".$InstanceID."/ChannelIcon"
+	 * @return array
+	 */
+	public function addImageUrl(string $name, string $label, string $uri, string $size, string $controller)
 	{
+		$i = $this->Get_CapabilityID();
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["type"] = "imageurl";
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["name"] = $name;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["label"] = $label;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["imageUri"] = $uri;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["size"] = $size;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["path"] = $controller;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 
+		/*
+		$DevConfigAR[$NeeoID]["capabilities"][13]["sensor"] = "CHANNELICON_SENSOR";
+		*/
 	}
 
-	public function addDirectory()
+	/** Define additional device directories which can be browsed on the device
+	 * @param string $name identifier of this element.
+	 * @param string $label optional, visible label in the mobile app or on the NEEO Remote.
+	 * @param bool $isQueue optional, name of the directory to be used for the queue - mediaplayer only
+	 * @param bool $isRoot optional, name of the directory that will be the 'root' level of your list
+	 * @param string $getter should return a list built by listBuilder so the App/NEEO Remote can display the browse result as a list. If the getter callback encounters an error, you can build a list with a 'ListInfoItem' to inform the user about the error
+	 * @param string $action will be called when an item is clicked
+	 * @return array
+	 */
+	public function addDirectory(string $name, string $label, bool $isQueue, bool $isRoot, string $getter, string $action)
 	{
-
+		$i = $this->Get_CapabilityID();
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["type"] = "directory";
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["name"] = $name;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["label"] = $label;
+		$this->Device_Configuration[$this->NeeoID]["capabilities"][$i]["path"] = $getter;
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 	}
 
-	public function addCapability()
+	/** Define queue directory which can be browsed on the device
+	 * @param string $name identifier of this element.
+	 * @param string $label optional, visible label in the mobile app or on the NEEO Remote.
+	 * @param string $getter should return a list built by listBuilder so the App/NEEO Remote can display the browse result as a list.
+	 * If the getter callback encounters an error, you can build a list with a 'ListInfoItem' to inform the user about the error.
+	 * the getter function is called with (deviceId, params) parameter. params contains information about the current list and contains those fields:
+	 * params.browseIdentifier: the browseIdentifier you defined for an entry, empty to fetch the root directory
+	 * params.limit: maximal page size
+	 * params.offset: offset position is list to show the next page of lists
+	 * @param string $action will be called when an item is clicked
+	 * @return array
+	 */
+	public function addQueueDirectory(string $name, string $label, string $getter, string $action)
 	{
-
+		// todo getter
+		// call_user_func($classname .'::say_hello'); // Seit 5.2.3
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
 	}
+
+	/** Define root directory which can be browsed on the device
+	 * @param string $name identifier of this element.
+	 * @param string $label optional, visible label in the mobile app or on the NEEO Remote.
+	 * @param string $getter should return a list built by listBuilder so the App/NEEO Remote can display the browse result as a list.
+	 * If the getter callback encounters an error, you can build a list with a 'ListInfoItem' to inform the user about the error.
+	 * the getter function is called with (deviceId, params) parameter. params contains information about the current list and contains those fields:
+	 * params.browseIdentifier: the browseIdentifier you defined for an entry, empty to fetch the root directory
+	 * params.limit: maximal page size
+	 * params.offset: offset position is list to show the next page of lists
+	 * @param string $action will be called when an item is clicked
+	 * @return array
+	 */
+	public function addRootDirectory(string $name, string $label, string $getter, string $action)
+	{
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
+	}
+
+	/**Define additional device capabilities, currently supported capabilities (case sensitive):
+	 * - "alwaysOn" – the device does not need to be powered on to be useable. You don't need to specify 'POWER ON' and 'POWER OFF' buttons and the device is not identified as "Not so smart device"
+	 * "bridgeDevice" – This capability is used after you add a new device, then you have the option to select "Add more from this bridge". For example Philips Hue - the discovered device (Gateway) supports multiple devices (Lamps).
+	 * "addAnotherDevice" - This capability is used after you add a new device that uses discovery. It gives the option to select "Add another ${device name}"
+	 * @param $capability
+	 * @return array
+	 */
+	public function addCapability($capability)
+	{
+		$this->Set_Configuration();
+		return $this->Device_Configuration;
+	}
+
+
 
 
 	// implementationservices devicestate
@@ -294,29 +586,7 @@ class NEEOSDK
 
 	}
 
-	/*
-	 * The following device types are supported by the SDK, They are all in UPPERCASE.
 
-ACCESSOIRE
-
-AVRECEIVER
-
-DVB
-
-DVD
-
-GAMECONSOLE
-
-LIGHT
-
-MEDIAPLAYER
-
-PROJECTOR
-
-TV
-
-VOD
-	 */
 
 	/*
 	 * Mediacontrol button names
@@ -657,4 +927,26 @@ WINDOWS
 WRITE
 	 */
 
+	// helper
+
+
+	/***********************************************************
+	 * Migrations
+	 ***********************************************************/
+
+	/**
+	 * Polyfill for IP-Symcon 4.4 and older
+	 * @param string $Ident
+	 * @param mixed $Value
+	 */
+	//Add this Polyfill for IP-Symcon 4.4 and older
+	protected function SetValue($Ident, $Value)
+	{
+
+		if (IPS_GetKernelVersion() >= 5) {
+			parent::SetValue($Ident, $Value);
+		} else {
+			SetValue($this->GetIDForIdent($Ident), $Value);
+		}
+	}
 }

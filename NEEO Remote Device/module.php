@@ -43,9 +43,13 @@ class NEEORemoteDevice extends IPSModule
 		$this->RegisterPropertyString("macros", "");
 		$this->RegisterPropertyString("manufacturer", "");
 		$this->RegisterPropertyString("device_info", "");
+		$this->RegisterPropertyString("setPowerOn", "");
+		$this->RegisterPropertyString("setPowerOff", "");
+		$this->RegisterPropertyString("getPowerState", "");
 		$this->RegisterPropertyBoolean("NEEOVars", false);
 		$this->RegisterPropertyBoolean("NEEOScript", false);
 		$this->RegisterPropertyBoolean("NEEOForwardScript", false);
+		$this->RegisterPropertyBoolean("CreateNEEOForwardScript", false);
 		$this->RegisterPropertyInteger("NEEOForwardScriptID", 0);
 	}
 
@@ -81,6 +85,7 @@ class NEEORemoteDevice extends IPSModule
 	{
 		$NEEOScript = $this->ReadPropertyBoolean("NEEOScript");
 		$NEEOForwardScript = $this->ReadPropertyBoolean("NEEOForwardScript");
+		$CreateNEEOForwardScript = $this->ReadPropertyBoolean("CreateNEEOForwardScript");
 		$NEEOForwardScriptID = $this->ReadPropertyInteger("NEEOForwardScriptID");
 		$type = $this->ReadPropertyString("type");
 		if ($NEEOForwardScript == true && $NEEOForwardScriptID == 0) {
@@ -94,6 +99,9 @@ class NEEORemoteDevice extends IPSModule
 		}
 		if ($NEEOScript) {
 			$this->SetNEEOInstanceScripts();
+		}
+		if ($CreateNEEOForwardScript) {
+			$this->Create_Forward_Script();
 		}
 		$this->SetStatus(102);
 	}
@@ -186,10 +194,10 @@ class NEEORemoteDevice extends IPSModule
 
 	private function CreateDeviceSkripts($catid)
 	{
-		$this->CreateMacroSkripts($catid);
+		$this->Create_Macro_Scripts($catid);
 	}
 
-	private function CreateMacroSkripts($catid)
+	private function Create_Macro_Scripts($catid)
 	{
 		$devicename = $this->ReadPropertyString("device_name");
 		$devicekey = $this->ReadPropertyString("deviceKey");
@@ -206,12 +214,54 @@ class NEEORemoteDevice extends IPSModule
 				IPS_SetParent($ScriptID, $catid);
 				IPS_SetIdent($ScriptID, $scriptident);
 				$content = "<?" . PHP_EOL .
-					"NEEO_Trigger_Makro(" . $this->InstanceID . ",\"" . $macro_key . "\");" . PHP_EOL .
+					"NEEO_SendCommand(" . $this->InstanceID . ",\"" . $command_type . "\");" . PHP_EOL .
 					"?>";
 
 				IPS_SetScriptContent($ScriptID, $content);
 			}
 		}
+	}
+
+	public function Create_Forward_Script()
+	{
+		$devicename = $this->ReadPropertyString("device_name");
+		$devicekey = $this->ReadPropertyString("deviceKey");
+		$recipe = IPS_GetName($this->InstanceID);
+		$macros = $this->GetMacros();
+		$content = "<?" . PHP_EOL .
+			"\$action = \$_IPS['action'];" . PHP_EOL .
+			"\$device = \$_IPS['device'];" . PHP_EOL .
+			"\$room = \$_IPS['room'];" . PHP_EOL .
+			"\$actionparameter = \$_IPS['actionparameter'];" . PHP_EOL .
+			"\$recipe = \$_IPS['recipe'];" . PHP_EOL .
+			"if(\$action == \"launch\" && \$recipe == \"" . $recipe . "\") // if action is launch and the recipe is " . $recipe . " do something" . PHP_EOL .
+			"{" . PHP_EOL .
+			"	IPS_LogMessage(\"NEEO Forward Script\", \"Recipe " . $recipe . " was triggered\");" . PHP_EOL .
+			"	// add device to trigger" . PHP_EOL .
+			"}" . PHP_EOL;
+		//Prüfen ob Script schon existiert
+		$Scriptname = $devicename . "_Forward Script";
+		$scriptident = $this->CreateIdent("NEEO_ForwardScript_Device_" . $devicekey);
+		$ScriptID = @IPS_GetObjectIDByIdent($scriptident, $this->InstanceID);
+		if ($ScriptID === false) {
+			$ScriptID = IPS_CreateScript(0);
+			IPS_SetName($ScriptID, $Scriptname);
+			IPS_SetParent($ScriptID, $this->InstanceID);
+			IPS_SetIdent($ScriptID, $scriptident);
+			IPS_SetHidden($ScriptID, true);
+			IPS_SetPosition($ScriptID, 40);
+		}
+		foreach ($macros as $command_type => $macro) {
+			// $macro_key = $macro->key;
+			$content .= "if(\$action == \"" . $command_type . "\" && \$device == \"" . $devicename . "\") // if action is " . $command_type . " and the device is " . $devicename . " do something" . PHP_EOL .
+				"{" . PHP_EOL .
+				"	IPS_LogMessage(\"NEEO Forward Script\", \"Action " . $command_type . " was triggered\");" . PHP_EOL .
+				"	// add device to trigger" . PHP_EOL .
+				"}" . PHP_EOL;
+		}
+		$content .= "?>";
+		IPS_SetScriptContent($ScriptID, $content);
+		$this->SendDebug("NEEO Forward Script", "Created Forward Script " . $ScriptID, 0);
 	}
 
 	private function GetMacroKey($macro_command)
@@ -228,6 +278,34 @@ class NEEORemoteDevice extends IPSModule
 
 	public function SetupVariables()
 	{
+		$setPowerOn = $this->ReadPropertyString("setPowerOn");
+		$setPowerOff = $this->ReadPropertyString("setPowerOff");
+		if ($setPowerOn != "" && $setPowerOff != "") {
+			$objectid = $this->RegisterVariableBoolean('LaunchRecipe', $this->Translate('Recipe'), '~Switch', $this->_getPosition());
+			$this->SendDebug("NEEO Device", "variable Recipe object id : " . $objectid, 0);
+			$this->EnableAction('LaunchRecipe');
+		}
+		if ($setPowerOn != "" && $setPowerOff == "") {
+			$this->RegisterProfileAssociation(
+				'NEEO.Reboot',
+				'',
+				'',
+				'',
+				0,
+				0,
+				0,
+				0,
+				1,
+				[
+					[0, $this->Translate('Reboot'), '', -1]
+				]
+			);
+			$objectid = $this->RegisterVariableInteger("Reboot", $this->Translate('Reboot'), "NEEO.Reboot", $this->_getPosition());
+			$this->SendDebug("NEEO Device", "variable Reboot object id : " . $objectid, 0);
+			$this->EnableAction('Reboot');
+		}
+
+
 		$NEEOVars = $this->ReadPropertyBoolean("NEEOVars");
 		if ($NEEOVars) {
 			$this->CreateNEEOVariables();
@@ -881,10 +959,10 @@ X
 			IPS_RunScriptEx($NEEOForwardScriptID, array("action" => $action, "device" => $device, "room" => $room, "actionparameter" => $actionparameter, "recipe" => $recipe));
 		}
 
-		$this->WriteValues($action, $actionparameter, $device);
+		$this->WriteValues($action, $actionparameter, $device, $recipe);
 	}
 
-	protected function WriteValues($action, $actionparameter = NULL, $device = NULL)
+	protected function WriteValues($action, $actionparameter = NULL, $device = NULL, $recipe = NULL)
 	{
 		if ($action == "POWER_OFF") {
 			$this->SetValue("STATE", false);
@@ -924,9 +1002,36 @@ X
 			}
 			$this->SetValue("LEVEL", $actionparameter);
 		}
+		$setPowerOn = $this->ReadPropertyString("setPowerOn");
+		$setPowerOff = $this->ReadPropertyString("setPowerOff");
+		if ($setPowerOn != "" && $setPowerOff != "") {
+
+			$device_name = $this->ReadPropertyString("device_name");
+			if($recipe == $device_name)
+			{
+				if($action == "launch")
+				{
+					$this->SetValue("LaunchRecipe", true);
+					$this->SendDebug("NEEO Recieve:", "Recipe ".$recipe." started", 0);
+				}
+				if($action == "poweroff")
+				{
+					$this->SetValue("LaunchRecipe", false);
+					$this->SendDebug("NEEO Recieve:", "Recipe ".$recipe." stopped", 0);
+				}
+			}
+
+
+
+			$objectid = $this->RegisterVariableBoolean('LaunchRecipe', $this->Translate('Recipe'), '~Switch', $this->_getPosition());
+			$this->SendDebug("NEEO Device", "variable Recipe object id : " . $objectid, 0);
+			$this->EnableAction('LaunchRecipe');
+		}
 	}
 
-	// Get a specific device and it's child configurations
+	/** Get a specific device and it's child configurations
+	 * @return string
+	 */
 	public function Get_Device()
 	{
 		$command = '/v1/projects/home/rooms/' . $this->ReadPropertyString("device_roomKey") . '/devices/' . $this->ReadPropertyString("deviceKey") . '/';
@@ -994,26 +1099,89 @@ X
 		return $config;
 	}
 
-	// Get all macros from a specific device
-	public function Get_Device_Makros()
+	/** Get all macros from a specific device
+	 * @return string
+	 */
+	public function Get_Device_Macros()
 	{
 		$command = '/v1/projects/home/rooms/' . $this->ReadPropertyString("device_roomKey") . '/devices/' . $this->ReadPropertyString("deviceKey") . '/macros';
 		$config = $this->SendData('GET', $command);
 		return $config;
 	}
 
-	// Trigger a Macro (Push a button)
-	public function Trigger_Makro($Macro_KEY)
+	/** Send a Command
+	 * @param string $command avaiable commands can be found in the list of the instance
+	 * @return string
+	 */
+	public function SendCommand(string $command)
+	{
+		$macro_key = $this->GetMacroKey($command);
+		$this->SendDebug("NEEO Device", "Send command " . $command, 0);
+		$this->SendDebug("NEEO Device", "macro key:" . $macro_key, 0);
+		$response = $this->Trigger_Macro($macro_key);
+		return $response;
+	}
+
+	/** Trigger a Macro (Push a button)
+	 * @param $Macro_KEY
+	 * @return string
+	 */
+	protected function Trigger_Macro($Macro_KEY)
 	{
 		$command = '/v1/projects/home/rooms/' . $this->ReadPropertyString("device_roomKey") . '/devices/' . $this->ReadPropertyString("deviceKey") . '/macros/' . $Macro_KEY . '/trigger';
 		$config = $this->SendData('GET', $command);
 		return $config;
 	}
 
-	// trigger a recipe
-	public function Trigger_Recipe($Macro_KEY)
+	/** Start Recipe
+	 * @return string
+	 */
+	public function StartRecipe()
 	{
-		$command = '/v1/projects/home/rooms/' . $this->ReadPropertyString("device_roomKey") . '/devices/' . $this->ReadPropertyString("deviceKey") . '/macros/' . $Macro_KEY . '/trigger';
+		$setPowerOn = $this->ReadPropertyString("setPowerOn");
+		if ($setPowerOn != "") {
+			$this->SendDebug("NEEO Device", "Start recipe " . $setPowerOn, 0);
+			$response = $this->Trigger_Recipe($setPowerOn);
+			$response = json_decode($response);
+			$type = $response->type;
+			if ($type == "launch") {
+				$this->SetValue("LaunchRecipe", true);
+			}
+		} else {
+			$this->SendDebug("NEEO Device", "Could not find setPowerOn ", 0);
+			$response = false;
+		}
+		return $response;
+	}
+
+	/** End Recipe
+	 * @return string
+	 */
+	public function EndRecipe()
+	{
+		$setPowerOff = $this->ReadPropertyString("setPowerOff");
+		if ($setPowerOff != "") {
+			$this->SendDebug("NEEO Device", "Stop recipe " . $setPowerOff, 0);
+			$response = $this->Trigger_Recipe($setPowerOff);
+			$response = json_decode($response);
+			$type = $response->type;
+			if ($type == "poweroff") {
+				$this->SetValue("LaunchRecipe", false);
+			}
+		} else {
+			$this->SendDebug("NEEO Device", "Could not find setPowerOff ", 0);
+			$response = false;
+		}
+		return $response;
+	}
+
+	/** trigger a recipe
+	 * @param $recipe_key
+	 * @return string
+	 */
+	protected function Trigger_Recipe($recipe_key)
+	{
+		$command = '/v1/projects/home/rooms/' . $this->ReadPropertyString("device_roomKey") . '/recipes/' . $recipe_key . '/execute';
 		$config = $this->SendData('GET', $command);
 		return $config;
 	}
@@ -1111,7 +1279,7 @@ X
 		$macro_key_poweron = $this->GetMacroKey("POWER_ON");
 		$this->SendDebug("NEEO Device", "Power On", 0);
 		$this->SendDebug("NEEO Device", "macro key:" . $macro_key_poweron, 0);
-		$response = $this->Trigger_Makro($macro_key_poweron);
+		$response = $this->Trigger_Macro($macro_key_poweron);
 		return $response;
 	}
 
@@ -1120,7 +1288,7 @@ X
 		$macro_key_poweroff = $this->GetMacroKey("POWER_OFF");
 		$this->SendDebug("NEEO Device", "Power Off", 0);
 		$this->SendDebug("NEEO Device", "macro key:" . $macro_key_poweroff, 0);
-		$response = $this->Trigger_Makro($macro_key_poweroff);
+		$response = $this->Trigger_Macro($macro_key_poweroff);
 		return $response;
 	}
 
@@ -1131,7 +1299,7 @@ X
 			$macro_key_led_on = $this->GetMacroKey("LED_ON");
 			$this->SendDebug("NEEO Cranium", "LED on", 0);
 			$this->SendDebug("NEEO Cranium", "macro key:" . $macro_key_led_on, 0);
-			$response = $this->Trigger_Makro($macro_key_led_on);
+			$response = $this->Trigger_Macro($macro_key_led_on);
 			return $response;
 		} else {
 			$this->SendDebug("NEEO Cranium", "No cranium device found", 0);
@@ -1146,7 +1314,7 @@ X
 			$macro_key_led_off = $this->GetMacroKey("LED_OFF");
 			$this->SendDebug("NEEO Cranium", "LED off", 0);
 			$this->SendDebug("NEEO Cranium", "macro key:" . $macro_key_led_off, 0);
-			$response = $this->Trigger_Makro($macro_key_led_off);
+			$response = $this->Trigger_Macro($macro_key_led_off);
 			return $response;
 		} else {
 			$this->SendDebug("NEEO Cranium", "No cranium device found", 0);
@@ -1161,7 +1329,7 @@ X
 			$macro_key_led_on = $this->GetMacroKey("REBOOT_BRAIN");
 			$this->SendDebug("NEEO Cranium", "Reboot Brain", 0);
 			$this->SendDebug("NEEO Cranium", "macro key:" . $macro_key_led_on, 0);
-			$response = $this->Trigger_Makro($macro_key_led_on);
+			$response = $this->Trigger_Macro($macro_key_led_on);
 			return $response;
 		} else {
 			$this->SendDebug("NEEO Cranium", "No cranium device found", 0);
@@ -1192,6 +1360,31 @@ X
 		return $config;
 	}
 
+
+	/** Get the State of a Recipe
+	 * @return bool|string
+	 */
+	public function StateRecipe()
+	{
+		$Recipe_KEY = $this->ReadPropertyString("getPowerState");
+		if ($Recipe_KEY == "") {
+			$this->SendDebug('Error:', 'No recipe key found', 0);
+			$recipe = false;
+		} else {
+			$recipe = $this->Get_State_Recipe($Recipe_KEY);
+			$recipe = json_decode($recipe, true);
+			$state = $recipe["active"];
+			if($state)
+			{
+				$this->SetValue("LaunchRecipe", true);
+			}
+			else{
+				$this->SetValue("LaunchRecipe", false);
+			}
+		}
+		return $recipe;
+	}
+
 	// Get recipe state
 	protected function Get_State_Recipe($Recipe_KEY)
 	{
@@ -1200,16 +1393,22 @@ X
 		return $config;
 	}
 
-	// get the active scenariokeys
-	protected function Get_Active_Scenario()
+
+	/** get the active scenariokeys
+	 * @return string
+	 */
+	public function Get_Active_Scenario()
 	{
 		$command = '/v1/projects/home/activescenariokeys';
 		$config = $this->SendData('GET', $command);
 		return $config;
 	}
 
-	// Sonos start menu (you can find here the directory-key for each element
-	protected function Sonos_Start_Menu()
+
+	/** Sonos start menu (you can find here the directory-key for each element
+	 * @return string
+	 */
+	public function Sonos_Start_Menu()
 	{
 		$command = '/v1/projects/home/rooms/' . $this->ReadPropertyString("device_roomKey") . '/devices/' . $this->ReadPropertyString("deviceKey") . '/getdirectoryrootitems';
 		$config = $this->SendData('GET', $command);
@@ -1242,6 +1441,13 @@ X
 					$this->LED_On();
 				} else {
 					$this->LED_Off();
+				}
+				break;
+			case "LaunchRecipe":
+				if ($Value) {
+					$this->StartRecipe();
+				} else {
+					$this->EndRecipe();
 				}
 				break;
 			case "BRAIN_REBOOT":
@@ -1400,6 +1606,11 @@ X
 				$form = array_merge_recursive(
 					$form,
 					[
+						[
+							'type' => 'CheckBox',
+							'name' => 'CreateNEEOForwardScript',
+							'caption' => 'Create NEEO Forward Script draft'
+						],
 						[
 							'name' => 'NEEOForwardScriptID',
 							'type' => 'SelectScript',

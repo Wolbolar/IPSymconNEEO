@@ -1,6 +1,7 @@
 {
   "translations": {
     "de": {
+      "If you want to add recipes to voice control, please create first the instance then active the voicecontrol checkbox of choice": "Wenn ein Sprachdienst benutzt werden soll, bitte zuerst die Instanz anlegen und dann die passende Auswahl für den Sprachdienst aktivieren",
       "Type": "Typ",
       "Room": "Raum",
       "room": "Raum",

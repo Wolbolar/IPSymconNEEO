@@ -4,10 +4,10 @@
 	"name": "NEEO",
 	"url": "https://github.com/Wolbolar/IPSymconNEEO",
 	"compatibility": {
-		"version": "4.4",
+		"version": "5.0",
 		"date": 1491343200
 	},
-	"version": "0.1",
+	"version": "0.2",
 	"build": 0,
 	"date": 0
 }

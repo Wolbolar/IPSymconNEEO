@@ -18,6 +18,10 @@ class NEEOConfigurator extends IPSModule
 
 		// 1. Verfügbarer AIOSplitter wird verbunden oder neu erzeugt, wenn nicht vorhanden.
 		$this->ConnectParent("{A938EE1A-519B-4BAB-AEB1-EFC1B2B15A91}");
+
+		$this->RegisterPropertyBoolean("GoogleHome", false);
+		$this->RegisterPropertyBoolean("Alexa", false);
+		$this->RegisterPropertyBoolean("Homekit", false);
 	}
 
 	/**
@@ -27,8 +31,116 @@ class NEEOConfigurator extends IPSModule
 	{
 		//Never delete this line!
 		parent::ApplyChanges();
+		$this->ValidateConfiguration();
 	}
 
+	private function ValidateConfiguration()
+	{
+		$GoogleHome = $this->ReadPropertyBoolean("GoogleHome");
+		$Alexa = $this->ReadPropertyBoolean("Alexa");
+		$Homekit = $this->ReadPropertyBoolean("Homekit");
+
+		if ($GoogleHome) {
+			$this->Add_Devices_To_VoiceControl("{BB6EF5EE-1437-4C80-A16D-DA0A6C885210}"); // Google Home
+		}
+		if ($Alexa) {
+			$this->Add_Devices_To_VoiceControl("{CC759EB6-7821-4AA5-9267-EF08C6A6A5B3}"); // Alexa
+		}
+		if ($Homekit) {
+			$this->Add_Devices_To_VoiceControl("{7FC71134-CFD0-4909-819C-B794FE067FBC}"); // Homekit
+		}
+		$this->SetStatus(102);
+	}
+
+	private $suffix = 0;
+
+	private function _getSuffix()
+	{
+		$this->suffix++;
+		return $this->suffix;
+	}
+
+	public function Add_Devices_To_VoiceControl($guid)
+	{
+		$voicecontrol_id = IPS_GetInstanceListByModuleID($guid)[0];
+		//var_dump($google_id);
+		$neeo_devices = IPS_GetInstanceListByModuleID('{67252707-E627-4DFC-07D3-438452F20B23}'); // NEEO Devices
+		//var_dump($neeo_devices);
+		$add_devices = [];
+		foreach ($neeo_devices as $neeo_device) {
+			$recipe_switch = @IPS_GetObjectIDByIdent("LaunchRecipe", $neeo_device);
+			//var_dump($recipe_switch);
+			if ($recipe_switch) {
+				$add_devices[$neeo_device] = $recipe_switch;
+			}
+		}
+		// var_dump($recipe_devices);
+		$configuration_json = IPS_GetConfiguration($voicecontrol_id);
+		$configuration = json_decode($configuration_json, true);
+		//var_dump($configuration);
+		foreach ($configuration as $devicetype => $devices) {
+			if ($devicetype == "DeviceGenericSwitch") {
+				$DeviceGenericSwitch = $this->SearchExistingDevice($devices, $add_devices);
+				//$DeviceGenericSwitch = SearchExistingDevice($devices, $add_devices);
+			}
+			if ($devicetype == "DeviceLightColor") {
+				$DeviceLightColor = $devices;
+				//$DeviceLightColor = $this->SearchExistingDevice($devices, $add_devices);
+			}
+			if ($devicetype == "DeviceLightDimmer") {
+				$DeviceLightDimmer = $devices;
+				//$DeviceLightDimmer = $this->SearchExistingDevice($devices, $add_devices);
+			}
+			if ($devicetype == "DeviceLightExpert") {
+				$DeviceLightExpert = $devices;
+				//$DeviceLightExpert = $this->SearchExistingDevice($devices, $add_devices);
+			}
+			if ($devicetype == "DeviceLightSwitch") {
+				$DeviceLightSwitch = $devices;
+				//$DeviceLightSwitch = $this->SearchExistingDevice($devices, $add_devices);
+			}
+			if ($devicetype == "DeviceSceneDeactivatable") {
+				$DeviceSceneDeactivatable = $devices;
+				//$DeviceSceneDeactivatable = $this->SearchExistingDevice($devices, $add_devices);
+			}
+			if ($devicetype == "DeviceSceneSimple") {
+				$DeviceSceneSimple = $devices;
+				//$DeviceSceneSimple = $this->SearchExistingDevice($devices, $add_devices);
+			}
+		}
+		$configuration = json_encode(["DeviceGenericSwitch" => json_encode($DeviceGenericSwitch), "DeviceLightColor" => $DeviceLightColor, "DeviceLightDimmer" => $DeviceLightDimmer, "DeviceLightExpert" => $DeviceLightExpert, "DeviceLightSwitch" => $DeviceLightSwitch, "DeviceSceneDeactivatable" => $DeviceSceneDeactivatable, "DeviceSceneSimple" => $DeviceSceneSimple]);
+		IPS_SetConfiguration($voicecontrol_id, $configuration);
+		IPS_ApplyChanges($voicecontrol_id); //Neue Konfiguration übernehmen
+
+	}
+
+	private function SearchExistingDevice($devices, $add_devices)
+	{
+		$devices = json_decode($devices, true);
+		foreach ($add_devices as $instanceid => $add_variable) {
+			$key = array_search($add_variable, array_column($devices, 'OnOffID'));
+			if (!$key) {
+				$this->SendDebug('Set Configuration', 'Device ' . IPS_GetName($instanceid) . ' does not exist', 0);
+				$devices = $this->AddDeviceToConfig($devices, $instanceid, $add_variable);
+			}
+		}
+		return $devices;
+	}
+
+
+	private function AddDeviceToConfig($devices, $instanceid, $add_variable)
+	{
+		$name = IPS_GetName($instanceid);
+		$key = array_search($name, array_column($devices, 'Name'));
+		if ($key) {
+			$name = $name . "_" . $this->_getSuffix();
+		}
+		end($devices);
+		//$lastkey = key($devices);
+		//array_push($devices, ["ID" => $lastkey+1, "Name" => $name, "OnOffID" => $add_variable]);
+		array_push($devices, ["ID" => "", "Name" => $name, "OnOffID" => $add_variable]);
+		return $devices;
+	}
 
 	/** Get Config Brain
 	 *
@@ -47,9 +159,9 @@ class NEEOConfigurator extends IPSModule
 		$hostname = $systemdata->hostname;
 		$this->SendDebug('NEEO hostname', $hostname, 0);
 		$config = $this->SendData('GET', '/v1/projects/home/');
-
-
+		$recipes_json = $this->SendData('GET', '/v1/api/Recipes');
 		$this->SendDebug('NEEO Config', $config, 0);
+		$this->SendDebug('NEEO Recipes', $recipes_json, 0);
 		if (!empty($config)) {
 			$data = json_decode($config);
 			if (property_exists($data, "name")) {
@@ -80,6 +192,41 @@ class NEEOConfigurator extends IPSModule
 						$instanceID = 0;
 						$device_name = $device->name;
 						$this->SendDebug('NEEO device name', $device_name, 0);
+						$setPowerOn = "";
+						$setPowerOff = "";
+						if (!empty($recipes_json)) {
+							$recipes = json_decode($recipes_json);
+							foreach ($recipes as $key => $recipe) {
+								$detail = $recipe->detail;
+								$recipe_roomname = urldecode($detail->roomname);
+								$recipe_devicename = urldecode($detail->devicename);
+								if ($recipe_roomname == $room_name && $recipe_devicename == $device_name) {
+									$type = $recipe->type;
+									if ($type == "launch") {
+										$url = $recipe->url;
+										$setPowerOn_URL = $url->setPowerOn;
+										$poweron_start = strpos($setPowerOn_URL, "recipes/");
+										$poweron_end = strpos($setPowerOn_URL, "/execute");
+										$setPowerOn = substr($setPowerOn_URL, $poweron_start + 8, $poweron_end - $poweron_start - 8);
+										$setPowerOff_URL = $url->setPowerOff;
+										$poweroff_start = strpos($setPowerOn_URL, "recipes/");
+										$poweroff_end = strpos($setPowerOn_URL, "/execute");
+										$setPowerOff = substr($setPowerOff_URL, $poweroff_start + 8, $poweroff_end - $poweroff_start - 8);
+										$getPowerState_URL = $url->getPowerState;
+										$getPowerState_start = strpos($getPowerState_URL, "recipes/");
+										$getPowerState_end = strpos($getPowerState_URL, "/isactive");
+										$getPowerState = substr($getPowerState_URL, $getPowerState_start + 8, $getPowerState_end - $getPowerState_start - 8);
+									}
+									if ($type == "poweroff") {
+										$url = $recipe->url;
+										$setPowerOff_URL = $url->setPowerOff;
+										$poweroff_start = strpos($setPowerOn_URL, "recipes/");
+										$poweroff_end = strpos($setPowerOn_URL, "/execute");
+										$setPowerOff = substr($setPowerOff_URL, $poweroff_start + 8, $poweroff_end - $poweroff_start - 8);
+									}
+								}
+							}
+						}
 						$device_roomName = $device->roomName;
 						$this->SendDebug('NEEO device room name', $device_roomName, 0);
 						$device_roomKey = $device->roomKey;
@@ -171,6 +318,9 @@ class NEEOConfigurator extends IPSModule
 										"macros" => $macros_JSON,
 										"manufacturer" => $manufacturer,
 										"device_info" => $device_info,
+										"setPowerOn" => $setPowerOn,
+										"setPowerOff" => $setPowerOff,
+										"getPowerState" => $getPowerState,
 										"NEEOVars" => true,
 										"NEEOScript" => false
 									]
@@ -186,7 +336,7 @@ class NEEOConfigurator extends IPSModule
 			}
 			$instanceWebUIID = 0;
 			$config_list[] = ["id" => $room_ips_id,
-				"type" => "room",
+				"type" => $this->Translate("room"),
 				"room" => "NEEOWebUI"
 			];
 			$NEEOWebUIInstanceIDList = IPS_GetInstanceListByModuleID('{F2EB7DBC-A770-43D1-A64A-089E8B0A7C37}'); // NEEO WebUI Devices
@@ -249,6 +399,25 @@ class NEEOConfigurator extends IPSModule
 			[
 				'type' => 'Image',
 				'image' => 'data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAMgAAAAjCAYAAADR20XfAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAABX9JREFUeNrsXb1S20AQPhQXqYL7DBPTpcM8ge0nwJRUwWWqwBMYylS2y1S2y1SGJ0B06Sw/AZphUqRCJE3SZRdWGUWjv5PuTrdGO3ODf6XV3n77b7EjYrS397YNf05hHcHqwmqLfPJg+bBm9/ffXaGQgJ8L+NPL+Aie86rAcTp0XT1RL6GcLoFnP4NXlPmQ9qBdI68BrGUR+cb4R73pw3pHOiTouQ7+PHp8S7J1s2Qb4RHlO6HvxCmU+WgnYWNuIhdVhkbA4EIROM7oIvJokAVMOA4e40zYQx7we5ixcfOagRGn/TylIwM0JmC3LTBCS1hT4DtIMUBrWMf00jD2kQVhYOLE3jirCA6kOW2yCjqq+jkLwSHSZAy8opVdWQYOQZ431duRjO/oczbwHoL1joxskvx9AI9HBvgg4okwwpiEXjMOEFXhx5wsSt0K17EQHFk0ZsRrNOKwVcbI3wT4nKekBdFQDZcbe91vaWQMmRrULKAhM2XrC140VxBxGPGAIN8NeIVpyvt98jqhsZ2FbzgamepTgl23BeFCXU7IoHBwyIjlMRmhJHlj3ox5LBr080gk1XUMMMXNKpqggBm/SQWQT8yuIazOCirodEE3T8lbRMMqzD1mlLt4jgHGVjHkvnTyI9UTDjRNqRAOGco+WswZ0HNM0h9ARzGhf8DHlAti4j5qGULuyoJ8JE9p0bW6SWVBCwl5vSpS79cYXpXxmmidw36FkOmZkZGN9lQOSoD0H99Uwco1VC1DMn3KR4CpC0sVTroZVieYM5JNW/OlBYK6ivGh77rRkI8aklKFAvwOgaMQlQ2x0ALIblKTj6jzdjbE84XzF1DIkQ7PXNQLVOC9NEDQ4qKbHzX5yIskmX7ZUicjFGbKeP++CYCEzC3IfcrmI7bRLiPl7DADk2vgHLe6DqwiBzmnGLBoHGhjPoKNpFuhsfyqcIizQ/0lnYrnqQqJDBUSPGsBgoKEDcNQ60YivsN8xFU9+Vsxptbq2eB6Q2t6rED5xkLzWArwizyOGBUvtJCjyEp45EmafCQ//p0w4TUcF+JeUKgfIFuWjzQ5xP97lETdBiDl8xGZeLCfMo7cEE/gNCFWXj4inku/MjH2hBo+DTW09R4kzEea/kg6BVtwDUWjhHYDkGSQYOVDptPeUZAQcgHHJSN+pxVBzj4y0DaLhZ12Gi0pKqQh5iM1zhnheR81Hh8TVldRX8AVGptjBABXZmZpW0n3sCLOyawlXO2E+iOmN2ZKozMsvBD9sIcFYehsYEK6wyrEingRn0k+8ij4EDer3jdwjh5LgFTIR1Z0w4WOaIg7SD/o9lBC7nchnlUACfMRScbQ6tw1AEkkGypDMh53qKvXReCQvU1SYB1AiAbC3hLnEaMyc9eCvpFsmIe55RqBUvU3QRhZ4DEi9+KSOp7s/J+pXxSGQ42YtN/YqHTi+SZjshsf/RloUcK8bFlxmnlNvAYlrlPW2qJCXcYKJ25JGXdJyeNgCxTzrSx/a5nUQkQvCAf7ADbeIM3UfakwbMRpZlERJF1DMhnSufZjxs5TxINJbygNbMe0FpJSuKKhHiNek3LBGUOZz6wHCNGx2I6RC5Xkc2KWprc5lZynZZq0Tk3CDYTae0OlbdQVI4XzBb/xcNnB1DqLCqVGfJwaFcIV6uaSNinn8JiFc6zCFpLvwHJg4/4PynbznZJu3lckYMxHFgqsw1VOOGdjKOAnyGOqQB46KMgBySEZO5uA8jRVTvfcLe3lXkWf7O6+2Yj8f4Diqpxb+vnz1zWcd4eqGa8lv47KdJIlADj+bzj+V3j4h5LNtiWbd4K8pchjQ7J4bwk4zoEvL0vGsFxYM+D9Gl76EXm7bVCm32B9gfURdOJzFs9F6a8AAwCUYSl1MA5tTwAAAABJRU5ErkJggg=='
+			],
+			[
+				'type' => 'Label',
+				'label' => 'If you want to add recipes to voice control, please create first the instance then active the voicecontrol checkbox of choice'
+			],
+			[
+				'type' => 'CheckBox',
+				'name' => 'GoogleHome',
+				'caption' => 'Google Home'
+			],
+			[
+				'type' => 'CheckBox',
+				'name' => 'Alexa',
+				'caption' => 'Alexa'
+			],
+			[
+				'type' => 'CheckBox',
+				'name' => 'Homekit',
+				'caption' => 'Homekit'
 			]
 		];
 		return $form;
