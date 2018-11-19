@@ -125,7 +125,7 @@ In the device you can see what kind of commands are available in NEEO for this d
 
 #### NEEO UI
 
-![NEEOWEBUI](img/NEEO_WebUI.png?raw=true "NEEOWEBUI")
+![NEEOWEBUI](img/NEEO_Web_UI.png?raw=true "NEEOWEBUI")
 
 #### Webfront example lamp
 
@@ -133,15 +133,15 @@ In the device you can see what kind of commands are available in NEEO for this d
 
 ### Apple Watch Screen
 
-![AppleWatch1](img/applewatch1.png?raw=true "Apple Watch 1")
+![Apple Watch 1](img/apple_watch_1.png?raw=true "Apple Watch 1")
 
-![AppleWatch2](img/applewatch2.png?raw=true "Apple Watch 2")
+![Apple Watch 2](img/apple_watch_2.png?raw=true "Apple Watch 2")
 
 #### Home App Ansicht Apple Watch
 
-![AppleWatch3](img/applewatch3.png?raw=true "Apple Watch 3")
+![Apple Watch 3](img/apple_watch_3.png?raw=true "Apple Watch 3")
 
-![AppleWatch4](img/applewatch4.png?raw=true "Apple Watch 4")
+![Apple Watch 4](img/apple_watch_4.png?raw=true "Apple Watch 4")
 
 
 ## 4. Function reference

@@ -133,7 +133,7 @@ In dem Gerät sieht man dann was das Gerät in NEEO selber an Schaltoptionen zur
 
 #### NEEO UI
 
-![NEEOWEBUI](img/NEEO_WebUI.png?raw=true "NEEOWEBUI")
+![NEEOWEBUI](img/NEEO_Web_UI.png?raw=true "NEEOWEBUI")
 
 #### Webfront Beispiel Lampe
 
@@ -141,15 +141,15 @@ In dem Gerät sieht man dann was das Gerät in NEEO selber an Schaltoptionen zur
 
 ### Apple Watch Ansicht
 
-![AppleWatch1](img/applewatch1.png?raw=true "Apple Watch 1")
+![Apple Watch 1](img/apple_watch_1.png?raw=true "Apple Watch 1")
 
-![AppleWatch2](img/applewatch2.png?raw=true "Apple Watch 2")
+![Apple Watch 2](img/apple_watch_2.png?raw=true "Apple Watch 2")
 
 #### Home App Ansicht Apple Watch
 
-![AppleWatch3](img/applewatch3.png?raw=true "Apple Watch 3")
+![Apple Watch 3](img/apple_watch_3.png?raw=true "Apple Watch 3")
 
-![AppleWatch4](img/applewatch4.png?raw=true "Apple Watch 4")
+![Apple Watch 4](img/apple_watch_4.png?raw=true "Apple Watch 4")
 
 ## 4. Funktionsreferenz
 
