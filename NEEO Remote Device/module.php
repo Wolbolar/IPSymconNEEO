@@ -1020,12 +1020,6 @@ X
 					$this->SendDebug("NEEO Recieve:", "Recipe ".$recipe." stopped", 0);
 				}
 			}
-
-
-
-			$objectid = $this->RegisterVariableBoolean('LaunchRecipe', $this->Translate('Recipe'), '~Switch', $this->_getPosition());
-			$this->SendDebug("NEEO Device", "variable Recipe object id : " . $objectid, 0);
-			$this->EnableAction('LaunchRecipe');
 		}
 	}
 

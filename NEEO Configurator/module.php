@@ -11,6 +11,10 @@ class NEEOConfigurator extends IPSModule
 	use BufferHelper,
 		DebugHelper;
 
+	private const ALEXA = '{CC759EB6-7821-4AA5-9267-EF08C6A6A5B3}'; // Alexa
+	private const GOOGLE_HOME = '{BB6EF5EE-1437-4C80-A16D-DA0A6C885210}'; // Google Home
+	private const HOMEKIT = '{7FC71134-CFD0-4909-819C-B794FE067FBC}'; // Homekit
+
 	public function Create()
 	{
 		//Never delete this line!
@@ -22,6 +26,8 @@ class NEEOConfigurator extends IPSModule
 		$this->RegisterPropertyBoolean("GoogleHome", false);
 		$this->RegisterPropertyBoolean("Alexa", false);
 		$this->RegisterPropertyBoolean("Homekit", false);
+		$this->RegisterPropertyBoolean("UseVisualisation", false);
+		$this->RegisterPropertyInteger("Visualisation", 0);
 	}
 
 	/**
@@ -39,17 +45,39 @@ class NEEOConfigurator extends IPSModule
 		$GoogleHome = $this->ReadPropertyBoolean("GoogleHome");
 		$Alexa = $this->ReadPropertyBoolean("Alexa");
 		$Homekit = $this->ReadPropertyBoolean("Homekit");
+		$Visualisation = $this->ReadPropertyInteger("Visualisation");
+		$UseVisualisation = $this->ReadPropertyBoolean("UseVisualisation");
 
 		if ($GoogleHome) {
-			$this->Add_Devices_To_VoiceControl("{BB6EF5EE-1437-4C80-A16D-DA0A6C885210}"); // Google Home
+			$this->Add_Devices_To_VoiceControl(self::GOOGLE_HOME); // Google Home
 		}
 		if ($Alexa) {
-			$this->Add_Devices_To_VoiceControl("{CC759EB6-7821-4AA5-9267-EF08C6A6A5B3}"); // Alexa
+			$this->Add_Devices_To_VoiceControl(self::ALEXA); // Alexa
 		}
 		if ($Homekit) {
-			$this->Add_Devices_To_VoiceControl("{7FC71134-CFD0-4909-819C-B794FE067FBC}"); // Homekit
+			$this->Add_Devices_To_VoiceControl(self::HOMEKIT); // Homekit
+		}
+		if ($Visualisation > 0 && $UseVisualisation == true) {
+			$this->CreateLinksVisualisation($Visualisation); // create links
 		}
 		$this->SetStatus(102);
+	}
+
+	private function CreateLinksVisualisation($Visualisation)
+	{
+		// check for recipes
+		$NEEORecipeInstanceID = IPS_GetInstanceListByModuleID('{935CA17E-9AE6-1992-7DD3-65B283B07C51}')[0]; // NEEO Recipe Devices
+		if ($NEEORecipeInstanceID > 0) {
+			$this->SendDebug('NEEO Configuration', 'Creating Links', 0);
+			$recipe_list = IPS_GetChildrenIDs($NEEORecipeInstanceID);
+			foreach ($recipe_list as $recipe) {
+				$LinkID = IPS_CreateLink();             // create link
+				$name = IPS_GetName($recipe);
+				IPS_SetName($LinkID, $name);
+				IPS_SetParent($LinkID, $Visualisation);
+				IPS_SetLinkTargetID($LinkID, $recipe);
+			}
+		}
 	}
 
 	private $suffix = 0;
@@ -60,75 +88,189 @@ class NEEOConfigurator extends IPSModule
 		return $this->suffix;
 	}
 
-	public function Add_Devices_To_VoiceControl($guid)
+	private function CheckVoiceControl($guid)
 	{
-		$voicecontrol_id = IPS_GetInstanceListByModuleID($guid)[0];
-		//var_dump($google_id);
-		$neeo_devices = IPS_GetInstanceListByModuleID('{67252707-E627-4DFC-07D3-438452F20B23}'); // NEEO Devices
-		//var_dump($neeo_devices);
-		$add_devices = [];
-		foreach ($neeo_devices as $neeo_device) {
-			$recipe_switch = @IPS_GetObjectIDByIdent("LaunchRecipe", $neeo_device);
-			//var_dump($recipe_switch);
-			if ($recipe_switch) {
-				$add_devices[$neeo_device] = $recipe_switch;
-			}
-		}
-		// var_dump($recipe_devices);
-		$configuration_json = IPS_GetConfiguration($voicecontrol_id);
-		$configuration = json_decode($configuration_json, true);
-		//var_dump($configuration);
-		foreach ($configuration as $devicetype => $devices) {
-			if ($devicetype == "DeviceGenericSwitch") {
-				$DeviceGenericSwitch = $this->SearchExistingDevice($devices, $add_devices);
-				//$DeviceGenericSwitch = SearchExistingDevice($devices, $add_devices);
-			}
-			if ($devicetype == "DeviceLightColor") {
-				$DeviceLightColor = $devices;
-				//$DeviceLightColor = $this->SearchExistingDevice($devices, $add_devices);
-			}
-			if ($devicetype == "DeviceLightDimmer") {
-				$DeviceLightDimmer = $devices;
-				//$DeviceLightDimmer = $this->SearchExistingDevice($devices, $add_devices);
-			}
-			if ($devicetype == "DeviceLightExpert") {
-				$DeviceLightExpert = $devices;
-				//$DeviceLightExpert = $this->SearchExistingDevice($devices, $add_devices);
-			}
-			if ($devicetype == "DeviceLightSwitch") {
-				$DeviceLightSwitch = $devices;
-				//$DeviceLightSwitch = $this->SearchExistingDevice($devices, $add_devices);
-			}
-			if ($devicetype == "DeviceSceneDeactivatable") {
-				$DeviceSceneDeactivatable = $devices;
-				//$DeviceSceneDeactivatable = $this->SearchExistingDevice($devices, $add_devices);
-			}
-			if ($devicetype == "DeviceSceneSimple") {
-				$DeviceSceneSimple = $devices;
-				//$DeviceSceneSimple = $this->SearchExistingDevice($devices, $add_devices);
-			}
-		}
-		$configuration = json_encode(["DeviceGenericSwitch" => json_encode($DeviceGenericSwitch), "DeviceLightColor" => $DeviceLightColor, "DeviceLightDimmer" => $DeviceLightDimmer, "DeviceLightExpert" => $DeviceLightExpert, "DeviceLightSwitch" => $DeviceLightSwitch, "DeviceSceneDeactivatable" => $DeviceSceneDeactivatable, "DeviceSceneSimple" => $DeviceSceneSimple]);
-		IPS_SetConfiguration($voicecontrol_id, $configuration);
-		IPS_ApplyChanges($voicecontrol_id); //Neue Konfiguration übernehmen
+		$voicecontrol_id = 0;
+		$voicecontrol_list = IPS_GetInstanceListByModuleID($guid);
+		$voicecontrol_name = $this->GetVoiceControlName($guid);
+		if (empty($voicecontrol_list)) {
 
+			$this->SendDebug('NEEO Voice Control', 'No instance for voicecontrol' . $voicecontrol_name . ' found.', 0);
+		} else {
+			$voicecontrol_id = IPS_GetInstanceListByModuleID($guid)[0];
+			$this->SendDebug('NEEO Voice Control', $voicecontrol_name . ' found with id' . $voicecontrol_id, 0);
+		}
+		return $voicecontrol_id;
 	}
 
-	private function SearchExistingDevice($devices, $add_devices)
+	private function GetVoiceControlName($guid)
+	{
+		$voicecontrol_name = "unkown";
+		if ($guid == self::ALEXA) {
+			$voicecontrol_name = "Alexa";
+		}
+		if ($guid == self::GOOGLE_HOME) {
+			$voicecontrol_name = "Google Home";
+		}
+		if ($guid == self::HOMEKIT) {
+			$voicecontrol_name = "Homekit";
+		}
+		return $voicecontrol_name;
+	}
+
+	public function Add_Devices_To_VoiceControl($guid)
+	{
+		$voicecontrol_id = $this->CheckVoiceControl($guid);
+		if ($voicecontrol_id == 0) {
+			return false;
+		} else {
+			$neeo_devices = IPS_GetInstanceListByModuleID('{935CA17E-9AE6-1992-7DD3-65B283B07C51}'); // NEEO Devices
+			$add_devices = [];
+			foreach ($neeo_devices as $neeo_device) {
+				$recipe_switch = @IPS_GetObjectIDByIdent("LaunchRecipe", $neeo_device);
+				if ($recipe_switch) {
+					$add_devices[$neeo_device] = $recipe_switch;
+				}
+			}
+			$configuration_json = IPS_GetConfiguration($voicecontrol_id);
+			$configuration = json_decode($configuration_json, true);
+			foreach ($configuration as $devicetype => $devices) {
+				// Google
+				if ($guid == self::GOOGLE_HOME) {
+					if ($devicetype == "DeviceGenericSwitch") {
+						$DeviceGenericSwitch = $this->SearchExistingDevice($devices, $add_devices, "OnOffID");
+						//$DeviceGenericSwitch = SearchExistingDevice($devices, $add_devices);
+					}
+					if ($devicetype == "DeviceLightColor") {
+						$DeviceLightColor = $devices;
+						//$DeviceLightColor = $this->SearchExistingDevice($devices, $add_devices, "");
+					}
+					if ($devicetype == "DeviceLightDimmer") {
+						$DeviceLightDimmer = $devices;
+						//$DeviceLightDimmer = $this->SearchExistingDevice($devices, $add_devices, "");
+					}
+					if ($devicetype == "DeviceLightExpert") {
+						$DeviceLightExpert = $devices;
+						//$DeviceLightExpert = $this->SearchExistingDevice($devices, $add_devices, "");
+					}
+					if ($devicetype == "DeviceLightSwitch") {
+						$DeviceLightSwitch = $devices;
+						//$DeviceLightSwitch = $this->SearchExistingDevice($devices, $add_devices, "");
+					}
+					if ($devicetype == "DeviceSceneDeactivatable") {
+						$DeviceSceneDeactivatable = $devices;
+						//$DeviceSceneDeactivatable = $this->SearchExistingDevice($devices, $add_devices, "");
+					}
+					if ($devicetype == "DeviceSceneSimple") {
+						$DeviceSceneSimple = $devices;
+						//$DeviceSceneSimple = $this->SearchExistingDevice($devices, $add_devices, "");
+					}
+				}
+				// Alexa
+				if ($guid == self::ALEXA) {
+					if ($devicetype == "DeviceGenericSwitch") {
+						$DeviceGenericSwitch = $this->SearchExistingDevice($devices, $add_devices, "PowerControllerID");
+						$this->SendDebug('Set Configuration', 'DeviceGenericSwitch ' . json_encode($DeviceGenericSwitch), 0);
+						//$DeviceGenericSwitch = SearchExistingDevice($devices, $add_devices);
+					}
+					if ($devicetype == "DeviceGenericSlider") {
+						$DeviceGenericSlider = $devices;
+						// $DeviceGenericSlider = $this->SearchExistingDevice($devices, $add_devices, "");
+					}
+					if ($devicetype == "DeviceLightColor") {
+						$DeviceLightColor = $devices;
+						//$DeviceLightColor = $this->SearchExistingDevice($devices, $add_devices, $guid);
+					}
+					if ($devicetype == "DeviceLightDimmer") {
+						$DeviceLightDimmer = $devices;
+						//$DeviceLightDimmer = $this->SearchExistingDevice($devices, $add_devices, $guid);
+					}
+					if ($devicetype == "DeviceLightExpert") {
+						$DeviceLightExpert = $devices;
+						//$DeviceLightExpert = $this->SearchExistingDevice($devices, $add_devices, $guid);
+					}
+					if ($devicetype == "DeviceLightSwitch") {
+						$DeviceLightSwitch = $devices;
+						//$DeviceLightSwitch = $this->SearchExistingDevice($devices, $add_devices, $guid);
+					}
+					if ($devicetype == "DeviceDeactivatableScene") {
+						$DeviceDeactivatableScene = $devices;
+						//$DeviceDeactivatableScene = $this->SearchExistingDevice($devices, $add_devices, $guid);
+					}
+					if ($devicetype == "DeviceSimpleScene") {
+						$DeviceSimpleScene = $devices;
+						//$DeviceSimpleScene = $this->SearchExistingDevice($devices, $add_devices, $guid);
+					}
+					if ($devicetype == "DeviceThermostat") {
+						$DeviceThermostat = $devices;
+						//$DeviceThermostat = $this->SearchExistingDevice($devices, $add_devices, $guid);
+					}
+				}
+				// Homekit
+				if ($guid == self::HOMEKIT) {
+					/*
+					if ($devicetype == "BridgeID") {
+						$BridgeID = $devices;
+					}
+					if ($devicetype == "BridgeName") {
+						$BridgeName = $devices;
+					}
+					if ($devicetype == "BridgePort") {
+						$BridgePort = $devices;
+					}
+					if ($devicetype == "AccessoryKeyPair") {
+						$AccessoryKeyPair = $devices;
+					}
+					if ($devicetype == "AccessoryKeyPair") {
+						$AccessoryKeyPair = $devices;
+					}
+					if ($devicetype == "AccessoryAirQualitySensor") {
+						$AccessoryAirQualitySensor = $devices;
+					}
+					if ($devicetype == "AccessoryCarbonDioxideSensor") {
+						$AccessoryCarbonDioxideSensor = $devices;
+					}
+					if ($devicetype == "AccessoryCarbonMonoxideSensor") {
+						$AccessoryCarbonMonoxideSensor = $devices;
+					}
+					*/
+					if ($devicetype == "AccessorySwitch") {
+						$AccessorySwitch = $this->SearchExistingDevice($devices, $add_devices, "VariableID");
+					}
+				}
+			}
+			if ($guid == self::GOOGLE_HOME) {
+				$configuration = json_encode(["DeviceGenericSwitch" => json_encode($DeviceGenericSwitch), "DeviceLightColor" => $DeviceLightColor, "DeviceLightDimmer" => $DeviceLightDimmer, "DeviceLightExpert" => $DeviceLightExpert, "DeviceLightSwitch" => $DeviceLightSwitch, "DeviceSceneDeactivatable" => $DeviceSceneDeactivatable, "DeviceSceneSimple" => $DeviceSceneSimple]);
+			}
+			if ($guid == self::ALEXA) {
+
+				$configuration = json_encode(["DeviceGenericSwitch" => json_encode($DeviceGenericSwitch), "DeviceGenericSlider" => $DeviceGenericSlider, "DeviceLightColor" => $DeviceLightColor, "DeviceLightDimmer" => $DeviceLightDimmer, "DeviceLightExpert" => $DeviceLightExpert, "DeviceLightSwitch" => $DeviceLightSwitch, "DeviceDeactivatableScene" => $DeviceDeactivatableScene, "DeviceSimpleScene" => $DeviceSimpleScene, "DeviceThermostat" => $DeviceThermostat]);
+			}
+			if ($guid == self::HOMEKIT) {
+				$configuration["AccessorySwitch"] = json_encode($AccessorySwitch);
+				$configuration = json_encode($configuration);
+			}
+			IPS_SetConfiguration($voicecontrol_id, $configuration);
+			IPS_ApplyChanges($voicecontrol_id); //Neue Konfiguration übernehmen
+			return true;
+		}
+	}
+
+	private function SearchExistingDevice($devices, $add_devices, $search)
 	{
 		$devices = json_decode($devices, true);
 		foreach ($add_devices as $instanceid => $add_variable) {
-			$key = array_search($add_variable, array_column($devices, 'OnOffID'));
+			$key = array_search($add_variable, array_column($devices, $search));
 			if (!$key) {
 				$this->SendDebug('Set Configuration', 'Device ' . IPS_GetName($instanceid) . ' does not exist', 0);
-				$devices = $this->AddDeviceToConfig($devices, $instanceid, $add_variable);
+				$devices = $this->AddDeviceToConfig($devices, $instanceid, $add_variable, $search);
 			}
 		}
 		return $devices;
 	}
 
 
-	private function AddDeviceToConfig($devices, $instanceid, $add_variable)
+	private function AddDeviceToConfig($devices, $instanceid, $add_variable, $search)
 	{
 		$name = IPS_GetName($instanceid);
 		$key = array_search($name, array_column($devices, 'Name'));
@@ -137,8 +279,8 @@ class NEEOConfigurator extends IPSModule
 		}
 		end($devices);
 		//$lastkey = key($devices);
-		//array_push($devices, ["ID" => $lastkey+1, "Name" => $name, "OnOffID" => $add_variable]);
-		array_push($devices, ["ID" => "", "Name" => $name, "OnOffID" => $add_variable]);
+		//array_push($devices, ["ID" => $lastkey+1, "Name" => $name, $search => $add_variable]);
+		array_push($devices, ["ID" => "", "Name" => $name, $search => $add_variable]);
 		return $devices;
 	}
 
@@ -366,6 +508,39 @@ class NEEOConfigurator extends IPSModule
 					]
 				]
 			];
+			$room_ips_id++;
+			$instanceRecipeUIID = 0;
+			$config_list[] = ["id" => $room_ips_id,
+				"type" => $this->Translate("recipes"),
+				"room" => $this->Translate("NEEO Recipes")
+			];
+			$NEEORecipeInstanceIDList = IPS_GetInstanceListByModuleID('{935CA17E-9AE6-1992-7DD3-65B283B07C51}'); // NEEO Recipe Devices
+			foreach ($NEEORecipeInstanceIDList as $NEEORecipeInstanceID) {
+				if (IPS_GetInstance($NEEORecipeInstanceID)['ConnectionID'] == $MyParent && IPS_GetProperty($NEEORecipeInstanceID, 'device_name') == "Recipes") {
+					$instanceRecipeUIID = $NEEOWebUIInstanceID;
+				}
+			}
+			$config_list[] = [
+				"instanceID" => $instanceRecipeUIID,
+				"parent" => $room_ips_id,
+				"id" => "NEEO Recipes",
+				"type" => $this->Translate("NEEO Recipes"),
+				"room" => $this->Translate("NEEO Recipes"),
+				"device" => $this->Translate("NEEO Recipes"),
+				"manufacturer" => "NEEO",
+				"name" => $this->Translate("NEEO Recipes"),
+				"location" => [
+					$this->Translate('devices'), "NEEO", $this->Translate('NEEO Devices'), $hostname . " (" . $hubip . ")"
+				],
+				"create" => [
+					[
+						"moduleID" => "{935CA17E-9AE6-1992-7DD3-65B283B07C51}",
+						"configuration" => [
+							"recipes" => $recipes_json
+						]
+					]
+				]
+			];
 		}
 
 		return $config_list;
@@ -418,6 +593,26 @@ class NEEOConfigurator extends IPSModule
 				'type' => 'CheckBox',
 				'name' => 'Homekit',
 				'caption' => 'Homekit'
+			],
+			[
+				'type' => 'ExpansionPanel',
+				'caption' => 'Visualisation',
+				'items' => [
+					[
+						'type' => 'Label',
+						'label' => 'Select category for visualisation, creating recipe links'
+					],
+					[
+						'type' => 'CheckBox',
+						'name' => 'UseVisualisation',
+						'caption' => 'create links'
+					],
+					[
+						'type' => 'SelectCategory',
+						'name' => 'Visualisation',
+						'caption' => 'Visualisation'
+					]
+				]
 			]
 		];
 		return $form;

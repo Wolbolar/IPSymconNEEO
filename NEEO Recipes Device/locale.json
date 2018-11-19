@@ -1,0 +1,15 @@
+{
+  "translations": {
+    "de": {
+      "NEEO Recipes": "NEEO Rezepte",
+      "Recipe": "Rezept",
+      "Creating instance.": "Instanz anlegen.",
+      "NEEO Recipes accessible.": "NEEO Rezepte angelegt.",
+      "interface closed.": "Schnittstelle geschlossen.",
+      "Please follow the instructions.": "Bitte der Anleitung folgen.",
+      "address must not empty.": "Adresse darf nicht leer sein.",
+      "No valid address.": "Keine gültige Adresse.",
+      "field must not be empty.": "Das Feld darf nicht leer sein."
+    }
+  }
+}

@@ -25,8 +25,12 @@ Mit dem Modul ist es möglich von einem [NEEO](https://neeo.com/ "NEEO") Brian a
 
  - NEEO Oberfläche aus dem Webfront aufrufbar
  - Schalten von an NEEO angelernten Geräten
+    - Starten und Beenden von Rezepten
     - Ein- / Ausschalten von Geräten
     - Dimmen von Lampen
+    - Aufrufen aller Befehle für ein Gerät
+ - Binden der Befehle oder Rezepte an Alexa, Google, Homekit
+ - Anlegen von Verknüpfungen der NEEO Rezepte für mobile Visualisierung z.B. Apple Watch  
     
 	  
 
@@ -95,13 +99,31 @@ So kann man mit Ereignissen z.B. auf einen bestimmten Wert einer Variable reagie
 
 #### NEEO Geräte in IP-Symcon anlegen
 
-Um Geräte aus NEEO als Instanzen in IP-Symcon anzulegen kann  ein Konfigurator genutzt werden. In IP-Symcon im Objektbaum auf _Konfigurator Instanzen_ mit der rechten Maustatse klicken und _Objekt hinzufügen -> Instanz_ auswählen.
+Um Geräte aus NEEO als Instanzen in IP-Symcon anzulegen kann  ein Konfigurator genutzt werden. In IP-Symcon im Objektbaum auf _Konfigurator Instanzen_ mit der rechten Maustaste klicken und _Objekt hinzufügen -> Instanz_ auswählen.
+
+##### Sprachsteuerung 
+Wenn eine Sprachsteuerung genutzt werden soll muss zunächst der entsprechende Dienst in IP-Symcon eingerichtet werden
+
+###### Alexa
+
+[Alexa Einrichtung](https://www.symcon.de/service/dokumentation/modulreferenz/amazon-alexa/ "Alexa")
+
+###### Google Home
+
+[Google Home Einrichtung](https://www.symcon.de/service/dokumentation/modulreferenz/google-assistant/ "Google Home")
+
+###### Homekit
+
+[Homekit Einrichtung](https://github.com/paresy/HomeKit "Homekit")
+
+Wenn der Dienst vorhanden ist kann ein Schalter aktiviert werden. Dann werden für alle vorhandenen NEEO Rezepte automatisch im Sprachdienst ein Schalter angelegt. Der Name sollte dann im entsprechenden Sprachdienst noch überprüft und gegebenfalls angepasst werden.
 
 ![NEEOConfigurator](img/NEEO_configurator.png?raw=true "NEEOConfigurator")
 
 Nachdem der Konfigurator angelegt wurde kann ein Gerät über _erstellen_ erzeugt werden.
 
-![NEEOConfigurator](img/NEEO_configurator_1.png?raw=true "NEEOConfigurator")
+![NEEOConfigurator](img/NEEO_Config1.png?raw=true "NEEOConfigurator")
+
 
 In dem Gerät sieht man dann was das Gerät in NEEO selber an Schaltoptionen zur Verfügung stellt.
 
@@ -109,33 +131,80 @@ In dem Gerät sieht man dann was das Gerät in NEEO selber an Schaltoptionen zur
 
 ### Webfront Ansicht
 
+#### NEEO UI
 
+![NEEOWEBUI](img/NEEO_WebUI.png?raw=true "NEEOWEBUI")
 
+#### Webfront Beispiel Lampe
+
+![NEEOWebfront](img/device.png?raw=true "NEEOWebfront")
+
+### Apple Watch Ansicht
+
+![AppleWatch1](img/applewatch1.png?raw=true "Apple Watch 1")
+
+![AppleWatch2](img/applewatch2.png?raw=true "Apple Watch 2")
+
+#### Home App Ansicht Apple Watch
+
+![AppleWatch3](img/applewatch3.png?raw=true "Apple Watch 3")
+
+![AppleWatch4](img/applewatch4.png?raw=true "Apple Watch 4")
 
 ## 4. Funktionsreferenz
 
 ### NEEO:
 
+  _**Senden eines Befehls an eine Gerät**_
+    
+  ```php
+  NEEO_SendCommand(int $InstanceID, string $command);
+  ```   
+   
+  Parameter _$InstanceID_ __*ObjectID*__ der NEEO Geräte Instanz
+  
+  Parameter _$command_ __*Befehl*__ verfügbare Befehle können in der Liste der Geräte Instanz nachgeschlagen werden	
+ 
+  _**Startet ein Rezept**_
+      
+   ```php
+  NEEO_StartRecipe(int $InstanceID);
+   ```   
+     
+  Parameter _$InstanceID_ __*ObjectID*__ der NEEO Geräte Instanz
+   
+    
+  _**Beendet ein Rezept**_
+       
+  ```php
+   NEEO_EndRecipe(int $InstanceID);
+  ```   
+      
+  Parameter _$InstanceID_ __*ObjectID*__ der NEEO Geräte Instanz
+ 
+ 
  _**Schaltet ein Gerät ein**_
   
  ```php
- NEEO_PowerOn($InstanceID);
+ NEEO_PowerOn(int $InstanceID);
  ```   
  
- Parameter _$InstanceID_ __*ObjektID*__ der NEEO Device Instanz
+ Parameter _$InstanceID_ __*ObjektID*__ der NEEO Geräte Instanz
+ 
+
 	
  _**Schaltet ein Gerät aus**_
    
  ```php
- NEEO_PowerOff($InstanceID);
+ NEEO_PowerOff(int $InstanceID);
  ```   
   
- Parameter _$InstanceID_ __*ObjektID*__ der NEEO Device Instanz
+ Parameter _$InstanceID_ __*ObjektID*__ der NEEO Geräte Instanz
   
  _**Schaltet LED des Brain ein**_
    
  ```php
- NEEO_LED_On($InstanceID);
+ NEEO_LED_On(int $InstanceID);
  ```   
   
  Parameter _$InstanceID_ __*ObjektID*__ der NEEO Cranium Instanz
@@ -143,7 +212,7 @@ In dem Gerät sieht man dann was das Gerät in NEEO selber an Schaltoptionen zur
  _**Schaltet LED des Brain aus**_
    
  ```php
- NEEO_LED_Off($InstanceID);
+ NEEO_LED_Off(int $InstanceID);
  ```   
   
  Parameter _$InstanceID_ __*ObjektID*__ der NEEO Cranium Instanz 
@@ -151,7 +220,7 @@ In dem Gerät sieht man dann was das Gerät in NEEO selber an Schaltoptionen zur
  _**Reboot des NEEO Brain**_
    
  ```php
- NEEO_Brain_Reboot($InstanceID);
+ NEEO_Brain_Reboot(int $InstanceID);
  ```   
   
  Parameter _$InstanceID_ __*ObjektID*__ der NEEO Cranium Instanz

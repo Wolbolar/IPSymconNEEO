@@ -1,0 +1,11 @@
+{
+    "id": "{935CA17E-9AE6-1992-7DD3-65B283B07C51}",
+    "name": "NEEORecipeDevice",
+    "type": 3,
+    "vendor": "NEEO",
+    "aliases": ["NEEO Recipe Device"],
+    "parentRequirements": ["{D6AB20D5-0C68-F522-D84C-F615E5A72326}"],
+    "childRequirements": [],
+    "implemented": ["{DAAA4574-9321-3497-D8BC-811D94206FDB}"],
+    "prefix": "NEEOR"
+}

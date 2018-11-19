@@ -23,10 +23,14 @@ With the module it is possible to control a [NEEO](https://neeo.com/ "NEEO") Bri
 	  
 ## 2. Requirements
 
- - NEEO Web User Interface for the Webfront
- - Switch NEEO devices
-    - Power on / Power off of devices
-    - dim lights
+  - NEEO interface can be called up from the web front
+  - switching of devices taught to NEEO
+     - Start and stop recipes
+     - Switch on / off devices
+     - Dimming of lamps
+     - Calling all commands for a device
+  - Bind the commands or recipes to Alexa, Google, Homekit
+  - Creation of links of the NEEO recipes for mobile visualization e.g. Apple Watch
 
 ## 3. Installation
 
@@ -89,11 +93,29 @@ So you can react with events, e.g. respond to a specific value of a variable.
 
 To create devices from NEEO as instances in IP-Symcon, a configurator can be used. In IP-Symcon in the object tree, click on _Configurator Instances_ with the right mouse button and select _Object -> add instance_.
 
+##### Voice Control 
+If a voice control is to be used, the corresponding service must first be set up in IP-Symcon
+
+###### Alexa
+
+[Alexa configuration](https://www.symcon.de/service/dokumentation/modulreferenz/amazon-alexa/ "Alexa")
+
+###### Google Home
+
+[Google Home configuration](https://www.symcon.de/service/dokumentation/modulreferenz/google-assistant/ "Google Home")
+
+###### Homekit
+
+[Homekit configuration](https://github.com/paresy/HomeKit "Homekit")
+
+
+If the service is present, a switch can be activated. Then a switch will automatically be created in the language service for all existing NEEO recipes. The name should then be checked in the corresponding language service and adapted if necessary.
+
 ![NEEOConfigurator](img/NEEO_configurator.png?raw=true "NEEOConfigurator")
 
 After the configurator has been created, a device can be created via _generate_.
 
-![NEEOConfigurator](img/NEEO_configurator_1.png?raw=true "NEEOConfigurator")
+![NEEOConfigurator](img/NEEO_Config1.png?raw=true "NEEOConfigurator")
 
 In the device you can see what kind of commands are available in NEEO for this device.
 
@@ -101,16 +123,63 @@ In the device you can see what kind of commands are available in NEEO for this d
 
 ### Webfront Screen
 
+#### NEEO UI
+
+![NEEOWEBUI](img/NEEO_WebUI.png?raw=true "NEEOWEBUI")
+
+#### Webfront example lamp
+
+![NEEOWebfront](img/device.png?raw=true "NEEOWebfront")
+
+### Apple Watch Screen
+
+![AppleWatch1](img/applewatch1.png?raw=true "Apple Watch 1")
+
+![AppleWatch2](img/applewatch2.png?raw=true "Apple Watch 2")
+
+#### Home App Ansicht Apple Watch
+
+![AppleWatch3](img/applewatch3.png?raw=true "Apple Watch 3")
+
+![AppleWatch4](img/applewatch4.png?raw=true "Apple Watch 4")
 
 
 ## 4. Function reference
 
 ### NEEO:
 
+ _**Send a command to a device**_
+   
+ ```php
+ NEEO_SendCommand(int $InstanceID, string $command);
+ ```   
+  
+ Parameter _$InstanceID_ __*ObjectID*__ from the NEEO device instance
+ 
+ Parameter _$command_ __*Command*__ available commands can be found in the list of the device instance	
+ 
+  _**Start recipe**_
+    
+ ```php
+ NEEO_StartRecipe(int $InstanceID);
+  ```   
+   
+ Parameter _$InstanceID_ __*ObjectID*__ from the NEEO device instance
+ 
+  
+ _**End recipe**_
+     
+ ```php
+  NEEO_EndRecipe(int $InstanceID);
+ ```   
+    
+ Parameter _$InstanceID_ __*ObjectID*__ from the NEEO device instance
+  	
+
  _**Switch on a device**_
   
  ```php
- NEEORD_PowerOn($InstanceID);
+ NEEORD_PowerOn(int $InstanceID);
  ```   
  
  Parameter _$InstanceID_ __*ObjectID*__ from the NEEO device instance
@@ -118,7 +187,7 @@ In the device you can see what kind of commands are available in NEEO for this d
   _**Switch off a device**_
    
   ```php
-  NEEORD_PowerOff($InstanceID);
+  NEEORD_PowerOff(int $InstanceID);
   ```   
   
   Parameter _$InstanceID_ __*ObjectID*__ from the NEEO device instance
@@ -126,7 +195,7 @@ In the device you can see what kind of commands are available in NEEO for this d
  _**Switch on the LED of the NEEO Brain**_
    
  ```php
- NEEO_LED_On($InstanceID);
+ NEEO_LED_On(int $InstanceID);
  ```   
   
  Parameter _$InstanceID_ __*ObjectID*__ from the NEEO Cranium instance
@@ -134,7 +203,7 @@ In the device you can see what kind of commands are available in NEEO for this d
  _**Switch off the LED of the NEEO Brain**_
    
  ```php
- NEEO_LED_Off($InstanceID);
+ NEEO_LED_Off(int $InstanceID);
  ```   
   
  Parameter _$InstanceID_ __*ObjectID*__ from the NEEO Cranium instance 
@@ -142,7 +211,7 @@ In the device you can see what kind of commands are available in NEEO for this d
  _**Reboot of the NEEO Brain**_
    
  ```php
- NEEO_Brain_Reboot($InstanceID);
+ NEEO_Brain_Reboot(int $InstanceID);
  ```   
   
  Parameter _$InstanceID_ __*ObjectID*__ from the NEEO Cranium instance	
