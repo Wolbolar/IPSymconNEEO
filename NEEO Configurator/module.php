@@ -389,9 +389,12 @@ class NEEOConfigurator extends IPSModule
 						$commandSets = $details->commandSets;
 						$commandSetsJSON = json_encode($commandSets);
 						$this->SendDebug('NEEO command sets', json_encode($commandSets), 0);
-						$deviceCapabilities = $details->deviceCapabilities;
-						$deviceCapabilitiesJSON = json_encode($deviceCapabilities);
-						$this->SendDebug('NEEO device capabilities', json_encode($deviceCapabilities), 0);
+						$deviceCapabilitiesJSON = "";
+						if (property_exists($details, "deviceCapabilities")) {
+							$deviceCapabilities = $details->deviceCapabilities;
+							$deviceCapabilitiesJSON = json_encode($deviceCapabilities);
+							$this->SendDebug('NEEO device capabilities', json_encode($deviceCapabilities), 0);
+						}
 						$roles = $details->roles;
 						$this->SendDebug('NEEO roles', json_encode($roles), 0);
 						$capabilities = $details->capabilities;
