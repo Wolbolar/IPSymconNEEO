@@ -336,6 +336,7 @@ class NEEOConfigurator extends IPSModule
 						$this->SendDebug('NEEO device name', $device_name, 0);
 						$setPowerOn = "";
 						$setPowerOff = "";
+						$getPowerState = "";
 						if (!empty($recipes_json)) {
 							$recipes = json_decode($recipes_json);
 							foreach ($recipes as $key => $recipe) {
