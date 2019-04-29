@@ -378,7 +378,10 @@ class NEEOConfigurator extends IPSModule
 					$devices = $room->devices;
 					$config_list[] = ["id" => $room_ips_id,
 						"type" => $this->Translate("room"),
-						"room" => $this->Translate($room_name)
+						"room" => $this->Translate($room_name),
+						"device" => $this->Translate("NEEO Room"),
+						"manufacturer" => "NEEO",
+						"name" => $this->Translate($room_name)
 					];
 					foreach ($devices as $device) {
 						$instanceID = 0;
@@ -607,8 +610,11 @@ class NEEOConfigurator extends IPSModule
 			}
 			$instanceWebUIID = 0;
 			$config_list[] = ["id" => $room_ips_id,
-				"type" => $this->Translate("room"),
-				"room" => "NEEOWebUI"
+				"type" => "NEEO Web UI",
+				"room" => "NEEO Web UI",
+				"device" => "NEEO Web UI",
+				"manufacturer" => "NEEO",
+				"name" => "NEEO Web UI"
 			];
 			$NEEOWebUIInstanceIDList = IPS_GetInstanceListByModuleID('{F2EB7DBC-A770-43D1-A64A-089E8B0A7C37}'); // NEEO WebUI Devices
 			foreach ($NEEOWebUIInstanceIDList as $NEEOWebUIInstanceID) {
@@ -641,7 +647,10 @@ class NEEOConfigurator extends IPSModule
 			$instanceRecipeUIID = 0;
 			$config_list[] = ["id" => $room_ips_id,
 				"type" => $this->Translate("recipes"),
-				"room" => $this->Translate("NEEO Recipes")
+				"room" => $this->Translate("NEEO Recipes"),
+				"device" => $this->Translate("NEEO Recipes"),
+				"manufacturer" => "NEEO",
+				"name" => $this->Translate("NEEO Recipes"),
 			];
 			$NEEORecipeInstanceIDList = IPS_GetInstanceListByModuleID('{935CA17E-9AE6-1992-7DD3-65B283B07C51}'); // NEEO Recipe Devices
 			foreach ($NEEORecipeInstanceIDList as $NEEORecipeInstanceID) {
