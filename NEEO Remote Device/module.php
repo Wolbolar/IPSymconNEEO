@@ -1,17 +1,17 @@
 <?
 declare(strict_types=1);
 
-require_once __DIR__ . '/../libs/ConstHelper.php';
-require_once __DIR__ . '/../libs/BufferHelper.php';
-require_once __DIR__ . '/../libs/DebugHelper.php';
+require_once __DIR__ . '/../libs/NEEOConstHelper.php';
+require_once __DIR__ . '/../libs/NEEOBufferHelper.php';
+require_once __DIR__ . '/../libs/NEEODebugHelper.php';
 include_once(__DIR__ . "/../libs/SSDPTraits.php");
 
 // Module for NEEO
 
 class NEEORemoteDevice extends IPSModule
 {
-	use BufferHelper,
-		DebugHelper,
+	use NEEOBufferHelper,
+		NEEODebugHelper,
 		InstanceStatus /* Diverse Methoden für die Verwendung im Splitter */ {
 		InstanceStatus::MessageSink as IOMessageSink; // MessageSink gibt es sowohl hier in der Klasse, als auch im Trait InstanceStatus. Hier wird für die Methode im Trait ein Alias benannt.
 		InstanceStatus::RegisterParent as IORegisterParent; // MessageSink gibt es sowohl hier in der Klasse, als auch im Trait InstanceStatus. Hier wird für die Methode im Trait ein Alias benannt.

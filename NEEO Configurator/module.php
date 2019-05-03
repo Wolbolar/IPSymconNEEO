@@ -1,15 +1,14 @@
 <?
 declare(strict_types=1);
 
-require_once __DIR__ . '/../libs/ConstHelper.php';
-require_once __DIR__ . '/../libs/BufferHelper.php';
-require_once __DIR__ . '/../libs/DebugHelper.php';
-
+require_once __DIR__ . '/../libs/NEEOConstHelper.php';
+require_once __DIR__ . '/../libs/NEEOBufferHelper.php';
+require_once __DIR__ . '/../libs/NEEODebugHelper.php';
 
 class NEEOConfigurator extends IPSModule
 {
-	use BufferHelper,
-		DebugHelper;
+	use NEEOBufferHelper,
+		NEEODebugHelper;
 
 	private const ALEXA = '{CC759EB6-7821-4AA5-9267-EF08C6A6A5B3}'; // Alexa
 	private const GOOGLE_HOME = '{BB6EF5EE-1437-4C80-A16D-DA0A6C885210}'; // Google Home
@@ -502,6 +501,7 @@ class NEEOConfigurator extends IPSModule
 						{
 							$this->SendDebug('NEEO power mode', $powerMode, 0);
 						}
+						$macros_JSON = "[]";
 						if (property_exists($device, 'macros')) {
 							$macros = $device->macros;
 							$macros_JSON = json_encode($macros);
@@ -655,7 +655,7 @@ class NEEOConfigurator extends IPSModule
 			$NEEORecipeInstanceIDList = IPS_GetInstanceListByModuleID('{935CA17E-9AE6-1992-7DD3-65B283B07C51}'); // NEEO Recipe Devices
 			foreach ($NEEORecipeInstanceIDList as $NEEORecipeInstanceID) {
 				if (IPS_GetInstance($NEEORecipeInstanceID)['ConnectionID'] == $MyParent && IPS_GetProperty($NEEORecipeInstanceID, 'device_name') == "Recipes") {
-					$instanceRecipeUIID = $NEEOWebUIInstanceID;
+					$instanceRecipeUIID = $NEEORecipeInstanceID;
 				}
 			}
 			$config_list[] = [
@@ -847,9 +847,9 @@ class NEEOConfigurator extends IPSModule
 	}
 
 	/** Sendet Eine Anfrage an den IO und liefert die Antwort.
-	 *
 	 * @param string $Method
-	 * @return string | array
+	 * @param string $command
+	 * @return string
 	 */
 	private function SendData(string $Method, string $command)
 	{
