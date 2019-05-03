@@ -1,16 +1,16 @@
 <?
 declare(strict_types=1);
 
-require_once __DIR__ . '/../libs/ConstHelper.php';
-require_once __DIR__ . '/../libs/BufferHelper.php';
-require_once __DIR__ . '/../libs/DebugHelper.php';
+require_once __DIR__ . '/../libs/NEEOConstHelper.php';
+require_once __DIR__ . '/../libs/NEEOBufferHelper.php';
+require_once __DIR__ . '/../libs/NEEODebugHelper.php';
 
 // Module for NEEO
 
 class NEEOWebUIDevice extends IPSModule
 {
-	use BufferHelper,
-		DebugHelper;
+	use NEEOBufferHelper,
+		NEEODebugHelper;
 
 	// helper properties
 	private $position = 0;
